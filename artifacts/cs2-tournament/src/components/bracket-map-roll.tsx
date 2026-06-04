@@ -203,6 +203,35 @@ export default function BracketMapRoll() {
               }
             );
           }
+
+          // Auto-start match on CS2 server via RCON
+          const lsAutoStart = localStorage.getItem("cs2_auto_start_match") === "1";
+          const rconHost = localStorage.getItem("cs2_rcon_host") ?? "";
+          const rconPort = localStorage.getItem("cs2_rcon_port") ?? "27015";
+          const rconPassword = localStorage.getItem("cs2_rcon_password") ?? "";
+
+          if (lsAutoStart && rconHost && rconPort && rconPassword) {
+            fetch("/api/matchzy/start", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                host: rconHost,
+                port: Number(rconPort),
+                password: rconPassword
+              })
+            })
+              .then(res => res.json())
+              .then((data: any) => {
+                if (data.success) {
+                  toast({ title: "Match autom. gestartet", description: "MatchZy-Match erfolgreich auf CS2-Server geladen." });
+                } else {
+                  toast({ variant: "destructive", title: "Auto-Match fehlgeschlagen", description: data.error || "RCON Fehler" });
+                }
+              })
+              .catch((err) => {
+                toast({ variant: "destructive", title: "Auto-Match Fehler", description: err.message });
+              });
+          }
         });
       }
     };

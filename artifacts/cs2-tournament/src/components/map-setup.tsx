@@ -58,6 +58,9 @@ export default function MapSetup() {
   const [showRconPw, setShowRconPw] = useState(false);
   const [rconStatus, setRconStatus] = useState("");
   const [isStartingMatch, setIsStartingMatch] = useState(false);
+  const [autoStartMatch, setAutoStartMatch] = useState(() =>
+    localStorage.getItem("cs2_auto_start_match") === "1"
+  );
 
   useEffect(() => {
     localStorage.setItem("cs2_connection_string", connectionString);
@@ -66,6 +69,10 @@ export default function MapSetup() {
   useEffect(() => {
     localStorage.setItem("cs2_auto_send", autoSend ? "1" : "0");
   }, [autoSend]);
+
+  useEffect(() => {
+    localStorage.setItem("cs2_auto_start_match", autoStartMatch ? "1" : "0");
+  }, [autoStartMatch]);
 
   useEffect(() => {
     localStorage.setItem("cs2_rcon_host", rconHost);
@@ -324,6 +331,21 @@ export default function MapSetup() {
                 {showRconPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+          </div>
+
+          {/* Auto-start toggle */}
+          <div className="flex items-center justify-between p-3 rounded-md border border-border/30 bg-background/30">
+            <div className="flex items-center gap-2">
+              <Zap className={`w-4 h-4 ${autoStartMatch ? "text-yellow-500 animate-pulse" : "text-muted-foreground"}`} />
+              <Label htmlFor="auto-start-match" className="font-mono text-xs uppercase tracking-wider cursor-pointer">
+                Auto-Laden nach Karten-Roll
+              </Label>
+            </div>
+            <Switch
+              id="auto-start-match"
+              checked={autoStartMatch}
+              onCheckedChange={setAutoStartMatch}
+            />
           </div>
 
           <Button
