@@ -49,4 +49,15 @@ router.post("/maps/roll", (req, res) => {
   res.json({ map });
 });
 
+router.post("/maps/confirm-roll", (req, res) => {
+  const { map } = req.body as { map?: string };
+  if (!map) {
+    res.status(400).json({ error: "map is required" });
+    return;
+  }
+  store.setRolledMap(map);
+  broadcastStateUpdate();
+  res.json({ success: true, rolledMap: map });
+});
+
 export default router;

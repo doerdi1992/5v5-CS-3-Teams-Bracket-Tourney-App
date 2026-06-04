@@ -15,7 +15,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Server } from "lucide-react";
+import { Copy, Server, Play } from "lucide-react";
+
+const getSteamUrl = (connStr: string | null): string => {
+  if (!connStr) return "";
+  let clean = connStr.trim();
+  if (clean.toLowerCase().startsWith("connect ")) {
+    clean = clean.substring(8).trim();
+  }
+  const parts = clean.split(";");
+  const ipPort = parts[0].trim();
+  let password = "";
+  if (parts.length > 1) {
+    const pwPart = parts[1].trim();
+    if (pwPart.toLowerCase().startsWith("password ")) {
+      password = pwPart.substring(9).trim();
+    }
+  }
+  if (password) {
+    return `steam://connect/${ipPort}/${password}`;
+  }
+  return `steam://connect/${ipPort}`;
+};
 
 export default function ViewerPage() {
   const { toast } = useToast();
@@ -203,13 +224,21 @@ export default function ViewerPage() {
             </DialogTitle>
             <DialogDescription className="text-base">Dein Match startet. Verbinde dich mit dem Server:</DialogDescription>
           </DialogHeader>
-          <div className="p-4 bg-black/50 rounded-md border border-border mt-4 flex items-center justify-between">
+          <div className="p-4 bg-black/50 rounded-md border border-border mt-2 flex items-center justify-between">
             <code className="text-secondary font-mono text-sm break-all">{connectionString}</code>
             <Button variant="ghost" size="icon" onClick={copyConnectionString} className="ml-2 hover:text-primary">
               <Copy className="w-4 h-4" />
             </Button>
           </div>
-          <Button onClick={() => setShowConnectionModal(false)} className="w-full mt-4 font-mono uppercase tracking-widest">Bestätigen</Button>
+          {connectionString && (
+            <a href={getSteamUrl(connectionString)} className="w-full block mt-3">
+              <Button className="w-full font-mono uppercase tracking-widest bg-green-600 hover:bg-green-700 text-white gap-2 h-10">
+                <Play className="w-4 h-4 fill-current" />
+                Server Beitreten (CS2)
+              </Button>
+            </a>
+          )}
+          <Button onClick={() => setShowConnectionModal(false)} className="w-full mt-2 font-mono uppercase tracking-widest" variant="outline">Bestätigen</Button>
         </DialogContent>
       </Dialog>
     </div>

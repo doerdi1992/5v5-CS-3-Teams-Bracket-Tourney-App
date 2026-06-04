@@ -140,7 +140,7 @@ export default function BracketMapRoll() {
   }, []);
 
   // ── rAF animation loop ────────────────────────────────────────────────────
-  const startAnimation = useCallback((totalScroll: number, ctx: AudioContext) => {
+  const startAnimation = useCallback((totalScroll: number, ctx: AudioContext, winner: string) => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     prevScrollRef.current = 0;
     if (stripRef.current) stripRef.current.style.transform = "translateX(0px)";
@@ -181,21 +181,29 @@ export default function BracketMapRoll() {
         setIsSpinning(false);
         setRevealed(true);
         playReveal(ctx, VOLUME);
-        queryClient.invalidateQueries({ queryKey: getGetFullStateQueryKey() });
 
-        // Auto-broadcast server if enabled and connection string is set
-        const lsAutoSend = localStorage.getItem("cs2_auto_send") === "1";
-        const lsConnectionString = localStorage.getItem("cs2_connection_string") ?? "";
-        if (lsAutoSend && lsConnectionString.trim()) {
-          broadcastMut.mutate(
-            { data: { connectionString: lsConnectionString } },
-            {
-              onSuccess: () => {
-                toast({ title: "Server automatisch gesendet", description: "Verbindungsdaten an aktive Teams übertragen." });
-              },
-            }
-          );
-        }
+        // Save the rolled map on the server and broadcast the update to viewers
+        fetch("/api/maps/confirm-roll", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ map: winner }),
+        }).then(() => {
+          queryClient.invalidateQueries({ queryKey: getGetFullStateQueryKey() });
+
+          // Auto-broadcast server if enabled and connection string is set
+          const lsAutoSend = localStorage.getItem("cs2_auto_send") === "1";
+          const lsConnectionString = localStorage.getItem("cs2_connection_string") ?? "";
+          if (lsAutoSend && lsConnectionString.trim()) {
+            broadcastMut.mutate(
+              { data: { connectionString: lsConnectionString } },
+              {
+                onSuccess: () => {
+                  toast({ title: "Server automatisch gesendet", description: "Verbindungsdaten an aktive Teams übertragen." });
+                },
+              }
+            );
+          }
+        });
       }
     };
 
@@ -242,7 +250,7 @@ export default function BracketMapRoll() {
 
           const ctx = getAudioCtx();
           // Wait one frame for React to render the strip items, then start animation
-          setTimeout(() => startAnimation(totalScroll, ctx), 50);
+          setTimeout(() => startAnimation(totalScroll, ctx, winner), 50);
         },
         onError: () => setIsSpinning(false),
       }

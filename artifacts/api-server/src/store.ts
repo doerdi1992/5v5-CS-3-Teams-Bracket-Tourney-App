@@ -171,8 +171,12 @@ class Store {
   rollMap(maps: string[]): string {
     if (maps.length === 0) return "Mirage";
     const rolled = maps[Math.floor(Math.random() * maps.length)];
-    this.bracketState.rolledMap = rolled;
+    this.bracketState.rolledMap = null; // Clear map state during spin so users don't see it early
     return rolled;
+  }
+
+  setRolledMap(map: string): void {
+    this.bracketState.rolledMap = map;
   }
 
   getMapImages(): Record<string, string> {
