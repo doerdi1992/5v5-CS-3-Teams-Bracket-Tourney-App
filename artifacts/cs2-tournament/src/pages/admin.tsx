@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Eye, EyeOff, Lock, Settings, Users, Swords, ExternalLink, LogOut } from "lucide-react";
+import { Eye, EyeOff, Lock, Settings, Users, Swords, LogOut } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import PlayerManagement from "@/components/player-management";
 import BracketMapRoll from "@/components/bracket-map-roll";
@@ -141,13 +141,6 @@ export default function AdminPage() {
 
             {/* Action bar */}
             <div className="flex items-center gap-2">
-              {/* Streamer OBS Link */}
-              <a href="/streamer" target="_blank" rel="noopener noreferrer">
-                <Button variant="ghost" size="sm" className="font-mono text-[10px] uppercase tracking-wider gap-1.5 h-8 text-muted-foreground/60 hover:text-cyan-400 hover:bg-cyan-500/5">
-                  <ExternalLink className="w-3 h-3" />
-                  OBS
-                </Button>
-              </a>
 
               {/* Settings (admin only) */}
               {role === "admin" && (

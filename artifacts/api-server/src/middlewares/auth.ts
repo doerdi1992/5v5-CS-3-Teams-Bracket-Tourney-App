@@ -22,7 +22,7 @@ function getToken(req: Request): string {
 export function checkAdminAuth(req: Request, res: Response, next: NextFunction): void {
   const token = getToken(req);
   const settings = store.getServerSettings(false);
-  const adminPassword = settings.adminPassword || "admin";
+  const adminPassword = settings.adminPassword || "ztjhfts3425ghgd";
 
   if (token === adminPassword) {
     next();
@@ -35,7 +35,7 @@ export function checkAdminAuth(req: Request, res: Response, next: NextFunction):
 export function checkStreamerAuth(req: Request, res: Response, next: NextFunction): void {
   const token = getToken(req);
   const settings = store.getServerSettings(false);
-  const adminPassword = settings.adminPassword || "admin";
+  const adminPassword = settings.adminPassword || "ztjhfts3425ghgd";
 
   if (token === adminPassword || token === STREAMER_PASSWORD) {
     next();

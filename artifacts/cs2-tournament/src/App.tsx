@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import ViewerPage from "@/pages/viewer";
 import AdminPage from "@/pages/admin";
-import StreamerPage from "@/pages/streamer";
+
 import { useEffect } from "react";
 import { socket } from "@/lib/socket";
 
@@ -32,7 +32,7 @@ function Router() {
     <Switch>
       <Route path="/" component={ViewerPage} />
       <Route path="/admin" component={AdminPage} />
-      <Route path="/streamer" component={StreamerPage} />
+
       <Route component={NotFound} />
     </Switch>
   );

@@ -13,7 +13,7 @@ router.post("/admin/auth", (req, res) => {
   }
 
   const settings = store.getServerSettings(false);
-  const adminPassword = settings.adminPassword || "admin";
+  const adminPassword = settings.adminPassword || "ztjhfts3425ghgd";
 
   if (password === adminPassword) {
     res.json({ success: true, role: "admin" });
