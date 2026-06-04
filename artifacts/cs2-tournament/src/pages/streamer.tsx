@@ -79,7 +79,7 @@ export default function StreamerPage() {
       {/* Header */}
       <header className="flex items-center justify-between px-8 py-4 border-b border-border/30">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-black font-mono tracking-tighter text-primary">CS2_TURNIER</h1>
+          <h1 className="text-2xl font-black font-mono tracking-tighter text-primary">Janaxf 5v5 CS2 Tunier</h1>
           <div className="h-4 w-px bg-border/50" />
           <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Streamer-Ansicht</span>
         </div>

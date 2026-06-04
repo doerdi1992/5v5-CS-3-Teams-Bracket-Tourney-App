@@ -94,7 +94,7 @@ export default function ViewerPage() {
     <div className="min-h-screen bg-background text-foreground p-6 flex flex-col items-center">
       <div className="max-w-4xl w-full space-y-8">
         <header className="text-center mb-12">
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tighter text-primary font-mono drop-shadow-sm">CS2_TURNIER</h1>
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tighter text-primary font-mono drop-shadow-sm">Janaxf 5v5 CS2 Tunier</h1>
           <p className="text-muted-foreground mt-2 tracking-widest uppercase text-sm">Spieler-Portal</p>
         </header>
 

@@ -95,7 +95,7 @@ export default function AdminPage() {
         <header className="mb-8 border-b border-border pb-4 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tighter text-primary font-mono">ADMIN_KONSOLE</h1>
-            <p className="text-muted-foreground font-mono uppercase text-sm mt-1">CS2 Turnier-Verwaltung</p>
+            <p className="text-muted-foreground font-mono uppercase text-sm mt-1">Janaxf 5v5 CS2 Tunier-Verwaltung</p>
           </div>
           <Button
             variant="ghost"
