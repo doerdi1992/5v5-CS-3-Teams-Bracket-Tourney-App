@@ -295,79 +295,6 @@ export default function PlayerManagement() {
             </ScrollArea>
           </CardContent>
         </Card>
-
-        {/* Collapsible Manual Add / Bulk Import at the bottom */}
-        <div className="pt-2">
-          <Button
-            variant="outline"
-            className="font-mono text-xs gap-1.5 border-border/60"
-            onClick={() => setShowManualAdd(!showManualAdd)}
-          >
-            {showManualAdd ? "Bereich ausblenden" : "Manuell hinzufügen"}
-          </Button>
-
-          {showManualAdd && (
-            <Card className="border-border/50 mt-4 animate-in fade-in slide-in-from-top-2 duration-200">
-              <CardHeader>
-                <CardTitle className="font-mono text-primary flex items-center gap-2 text-sm uppercase">
-                  <Users className="w-4 h-4" />
-                  MANUELL HINZUFÜGEN
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Part A: Add Single Player */}
-                <form onSubmit={handleAddSingle} className="space-y-3 p-4 bg-background/30 rounded-lg border border-border/40">
-                  <h4 className="font-mono text-xs text-secondary font-bold uppercase tracking-wider">Einzelnen Spieler hinzufügen</h4>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Name</label>
-                      <Input
-                        value={singleName}
-                        onChange={(e) => setSingleName(e.target.value)}
-                        placeholder="z.B. Janaxf"
-                        className="font-mono bg-background/50 h-9 text-sm"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Steam-Profil / Steam64 ID</label>
-                      <Input
-                        value={singleSteam}
-                        onChange={(e) => setSingleSteam(e.target.value)}
-                        placeholder="Link oder 17 Ziffern"
-                        className="font-mono bg-background/50 h-9 text-sm"
-                      />
-                    </div>
-                  </div>
-                  <Button
-                    type="submit"
-                    disabled={isAddingSingle || !singleName.trim()}
-                    className="font-mono w-full text-xs h-8 uppercase tracking-widest mt-2"
-                  >
-                    {isAddingSingle ? "Auflösen & Hinzufügen..." : "Spieler hinzufügen"}
-                  </Button>
-                </form>
-
-                {/* Part B: Bulk Import */}
-                <div className="space-y-3 p-4 bg-background/30 rounded-lg border border-border/40">
-                  <h4 className="font-mono text-xs text-secondary font-bold uppercase tracking-wider">Massen-Import (Namen-Liste)</h4>
-                  <Textarea
-                    placeholder="Spielernamen einfügen (einer pro Zeile)..."
-                    value={bulkInput}
-                    onChange={(e) => setBulkInput(e.target.value)}
-                    className="font-mono bg-background/50 min-h-[100px] text-sm"
-                  />
-                  <Button
-                    onClick={handleBulkAdd}
-                    disabled={addPlayersMut.isPending || !bulkInput.trim()}
-                    className="font-mono w-full text-xs h-8 uppercase tracking-widest"
-                  >
-                    Massen-Import starten
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
       </div>
 
       {/* Right Column */}
@@ -424,6 +351,79 @@ export default function PlayerManagement() {
             </ScrollArea>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Collapsible Manual Add / Bulk Import at the bottom (full width) */}
+      <div className="col-span-12 pt-4">
+        <Button
+          variant="outline"
+          className="font-mono text-xs gap-1.5 border-border/60"
+          onClick={() => setShowManualAdd(!showManualAdd)}
+        >
+          {showManualAdd ? "Bereich ausblenden" : "Manuell hinzufügen"}
+        </Button>
+
+        {showManualAdd && (
+          <Card className="border-border/50 mt-4 animate-in fade-in slide-in-from-top-2 duration-200">
+            <CardHeader>
+              <CardTitle className="font-mono text-primary flex items-center gap-2 text-sm uppercase">
+                <Users className="w-4 h-4" />
+                MANUELL HINZUFÜGEN
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Part A: Add Single Player */}
+              <form onSubmit={handleAddSingle} className="space-y-3 p-4 bg-background/30 rounded-lg border border-border/40">
+                <h4 className="font-mono text-xs text-secondary font-bold uppercase tracking-wider">Einzelnen Spieler hinzufügen</h4>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Name</label>
+                    <Input
+                      value={singleName}
+                      onChange={(e) => setSingleName(e.target.value)}
+                      placeholder="z.B. Janaxf"
+                      className="font-mono bg-background/50 h-9 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Steam-Profil / Steam64 ID</label>
+                    <Input
+                      value={singleSteam}
+                      onChange={(e) => setSingleSteam(e.target.value)}
+                      placeholder="Link oder 17 Ziffern"
+                      className="font-mono bg-background/50 h-9 text-sm"
+                    />
+                  </div>
+                </div>
+                <Button
+                  type="submit"
+                  disabled={isAddingSingle || !singleName.trim()}
+                  className="font-mono w-full text-xs h-8 uppercase tracking-widest mt-2"
+                >
+                  {isAddingSingle ? "Auflösen & Hinzufügen..." : "Spieler hinzufügen"}
+                </Button>
+              </form>
+
+              {/* Part B: Bulk Import */}
+              <div className="space-y-3 p-4 bg-background/30 rounded-lg border border-border/40">
+                <h4 className="font-mono text-xs text-secondary font-bold uppercase tracking-wider">Massen-Import (Namen-Liste)</h4>
+                <Textarea
+                  placeholder="Spielernamen einfügen (einer pro Zeile)..."
+                  value={bulkInput}
+                  onChange={(e) => setBulkInput(e.target.value)}
+                  className="font-mono bg-background/50 min-h-[100px] text-sm"
+                />
+                <Button
+                  onClick={handleBulkAdd}
+                  disabled={addPlayersMut.isPending || !bulkInput.trim()}
+                  className="font-mono w-full text-xs h-8 uppercase tracking-widest"
+                >
+                  Massen-Import starten
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
