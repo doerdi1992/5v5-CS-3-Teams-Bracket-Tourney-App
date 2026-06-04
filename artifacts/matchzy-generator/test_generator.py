@@ -1,21 +1,48 @@
 import os
 import json
+import shutil
+import tempfile
 import unittest
+
+# Initialize a temporary directory for testing before importing app to avoid polluting the repo files
+TEST_DIR = tempfile.mkdtemp()
+TEST_DB_FILE = os.path.join(TEST_DIR, "used_matches_test.json")
+TEST_REGISTRY_FILE = os.path.join(TEST_DIR, "map_registry_test.json")
+
+os.environ["MATCHZY_DB_FILE"] = TEST_DB_FILE
+os.environ["MAP_REGISTRY_FILE"] = TEST_REGISTRY_FILE
+
+# Copy the original map registry to the temp directory if it exists
+ORIGINAL_REGISTRY_PATH = os.path.join(os.path.dirname(__file__), "map_registry.json")
+if os.path.exists(ORIGINAL_REGISTRY_PATH):
+    shutil.copy(ORIGINAL_REGISTRY_PATH, TEST_REGISTRY_FILE)
+else:
+    with open(TEST_REGISTRY_FILE, "w") as f:
+        json.dump({"default": "de_mirage", "mirage": "de_mirage", "cobblestone": "workshop/3329387648/de_cbble"}, f)
+
 from fastapi.testclient import TestClient
-from app import app, DB_FILE, REGISTRY_FILE
+from app import app
 
 class TestMatchZyGenerator(unittest.TestCase):
     def setUp(self):
         # Initialize test client
         self.client = TestClient(app)
-        # Clear persistent match database before running tests
-        if os.path.exists(DB_FILE):
-            os.remove(DB_FILE)
+        # Clear persistent match database before each test
+        if os.path.exists(TEST_DB_FILE):
+            os.remove(TEST_DB_FILE)
+        # Restore the map registry to its original state for consistency
+        if os.path.exists(ORIGINAL_REGISTRY_PATH):
+            shutil.copy(ORIGINAL_REGISTRY_PATH, TEST_REGISTRY_FILE)
 
     def tearDown(self):
         # Clear persistent database after tests
-        if os.path.exists(DB_FILE):
-            os.remove(DB_FILE)
+        if os.path.exists(TEST_DB_FILE):
+            os.remove(TEST_DB_FILE)
+
+    @classmethod
+    def tearDownClass(cls):
+        # Clean up the entire temporary directory
+        shutil.rmtree(TEST_DIR, ignore_errors=True)
 
     def test_01_successful_post_match_creation(self):
         """Verify successful POST request generates valid MatchZy configuration."""
@@ -154,27 +181,22 @@ class TestMatchZyGenerator(unittest.TestCase):
         self.assertEqual(response1.json()["maplist"], ["de_mirage"]) # Default map fallback
 
         # 2. Modify map_registry.json at runtime
-        with open(REGISTRY_FILE, "r") as f:
+        with open(TEST_REGISTRY_FILE, "r") as f:
             original_registry = json.load(f)
 
         updated_registry = original_registry.copy()
         updated_registry[temp_map_key] = "workshop/999999/de_temp_map"
 
-        with open(REGISTRY_FILE, "w") as f:
+        with open(TEST_REGISTRY_FILE, "w") as f:
             json.dump(updated_registry, f, indent=2)
 
-        try:
-            # 3. Request again with a new match_id and the same map key
-            payload["match_id"] = 402
-            response2 = self.client.post("/match", json=payload)
-            self.assertEqual(response2.status_code, 201)
-            
-            # Verify new map path is returned instantly (hot-reloaded)
-            self.assertEqual(response2.json()["maplist"], ["workshop/999999/de_temp_map"])
-        finally:
-            # 4. Restore original registry
-            with open(REGISTRY_FILE, "w") as f:
-                json.dump(original_registry, f, indent=2)
+        # 3. Request again with a new match_id and the same map key
+        payload["match_id"] = 402
+        response2 = self.client.post("/match", json=payload)
+        self.assertEqual(response2.status_code, 201)
+        
+        # Verify new map path is returned instantly (hot-reloaded)
+        self.assertEqual(response2.json()["maplist"], ["workshop/999999/de_temp_map"])
 
 if __name__ == "__main__":
     unittest.main()

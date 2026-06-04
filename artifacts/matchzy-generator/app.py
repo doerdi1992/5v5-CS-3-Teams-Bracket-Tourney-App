@@ -1,14 +1,35 @@
 import os
 import re
 import json
+import tempfile
 from typing import Dict
 from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
 
 app = FastAPI(title="MatchZy JSON Automation Pipeline")
 
-DB_FILE = os.path.join(os.path.dirname(__file__), "used_matches.json")
-REGISTRY_FILE = os.path.join(os.path.dirname(__file__), "map_registry.json")
+def get_writable_db_file() -> str:
+    env_path = os.getenv("MATCHZY_DB_FILE")
+    if env_path:
+        return env_path
+
+    default_path = os.path.join(os.path.dirname(__file__), "used_matches.json")
+    try:
+        # Check if we can write to the default path or directory
+        if os.path.exists(default_path):
+            with open(default_path, "a"):
+                pass
+        else:
+            with open(default_path, "w") as f:
+                json.dump([], f)
+        return default_path
+    except (IOError, PermissionError):
+        fallback_path = os.path.join(tempfile.gettempdir(), "matchzy_used_matches.json")
+        print(f"Warning: Default database path '{default_path}' is not writable. Falling back to: {fallback_path}")
+        return fallback_path
+
+DB_FILE = get_writable_db_file()
+REGISTRY_FILE = os.getenv("MAP_REGISTRY_FILE", os.path.join(os.path.dirname(__file__), "map_registry.json"))
 
 # ─── Data Access & Uniqueness Check ──────────────────────────────────────────
 
