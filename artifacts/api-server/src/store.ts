@@ -19,6 +19,7 @@ export interface ServerSettings {
   autoSend: boolean;
   autoStartMatch: boolean;
   appUrl?: string;
+  adminPassword?: string;
 }
 
 export interface Player {
@@ -127,6 +128,10 @@ class Store {
         if (val && val !== "********") {
           merged.ftpPassword = val as string;
         }
+      } else if (key === "adminPassword") {
+        if (val && val !== "********") {
+          merged.adminPassword = val as string;
+        }
       } else {
         (merged as any)[key] = val;
       }
@@ -156,6 +161,7 @@ class Store {
       ...this.serverSettings,
       rconPassword: this.serverSettings.rconPassword ? "********" : "",
       ftpPassword: this.serverSettings.ftpPassword ? "********" : "",
+      adminPassword: this.serverSettings.adminPassword ? "********" : "",
     };
   }
 

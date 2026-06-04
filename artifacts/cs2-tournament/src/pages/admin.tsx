@@ -13,13 +13,17 @@ const AUTH_KEY = "cs2_admin_auth";
 
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
+  const [role, setRole] = useState<"admin" | "streamer">("streamer");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (sessionStorage.getItem(AUTH_KEY) === "1") setAuthed(true);
+    if (sessionStorage.getItem(AUTH_KEY) === "1") {
+      setAuthed(true);
+      setRole((sessionStorage.getItem("cs2_admin_role") as "admin" | "streamer") || "streamer");
+    }
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -33,8 +37,11 @@ export default function AdminPage() {
         body: JSON.stringify({ password }),
       });
       if (res.ok) {
+        const data = await res.json() as { role: "admin" | "streamer" };
         sessionStorage.setItem(AUTH_KEY, "1");
         sessionStorage.setItem("cs2_admin_password", password);
+        sessionStorage.setItem("cs2_admin_role", data.role);
+        setRole(data.role);
         setAuthed(true);
       } else {
         const data = await res.json() as { message?: string };
@@ -106,11 +113,13 @@ export default function AdminPage() {
             {/* Title block */}
             <div className="text-center sm:text-left space-y-1">
               <div className="flex items-center justify-center sm:justify-start gap-2">
-                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_#ef4444]" />
-                <span className="text-[10px] font-mono tracking-widest text-red-500 uppercase font-black">Admin Mode</span>
+                <div className={`w-2 h-2 rounded-full ${role === "admin" ? "bg-red-500 shadow-[0_0_8px_#ef4444]" : "bg-purple-500 shadow-[0_0_8px_#a855f7]"} animate-pulse`} />
+                <span className={`text-[10px] font-mono tracking-widest ${role === "admin" ? "text-red-500" : "text-purple-500"} uppercase font-black`}>
+                  {role === "admin" ? "Admin Mode" : "Streamer Mode"}
+                </span>
               </div>
               <h1 className="text-2xl md:text-3xl font-black tracking-wider text-primary font-mono uppercase bg-gradient-to-r from-primary via-orange-400 to-primary bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(249,115,22,0.25)]">
-                ADMIN_KONSOLE
+                {role === "admin" ? "ADMIN_KONSOLE" : "STREAMER_KONSOLE"}
               </h1>
               <p className="text-muted-foreground font-mono uppercase text-[10px] tracking-[0.15em]">
                 Janaxf 5v5 CS2 Turnier-Verwaltung
@@ -119,20 +128,22 @@ export default function AdminPage() {
 
             {/* Action buttons */}
             <div className="flex items-center gap-3">
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 h-9 px-4 border-border/60 hover:border-primary/50 hover:bg-primary/5 transition-all">
-                    <Settings className="w-4 h-4 text-muted-foreground" />
-                    Einstellungen
-                  </Button>
-                </SheetTrigger>
-                <SheetContent className="sm:max-w-2xl w-[600px] overflow-y-auto bg-background border-l border-border p-6">
-                  <SheetHeader className="mb-6">
-                    <SheetTitle className="font-mono text-xl uppercase text-primary">Einstellungen</SheetTitle>
-                  </SheetHeader>
-                  <MapSetup />
-                </SheetContent>
-              </Sheet>
+              {role === "admin" && (
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 h-9 px-4 border-border/60 hover:border-primary/50 hover:bg-primary/5 transition-all">
+                      <Settings className="w-4 h-4 text-muted-foreground" />
+                      Einstellungen
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent className="sm:max-w-2xl w-[600px] overflow-y-auto bg-background border-l border-border p-6">
+                    <SheetHeader className="mb-6">
+                      <SheetTitle className="font-mono text-xl uppercase text-primary">Einstellungen</SheetTitle>
+                    </SheetHeader>
+                    <MapSetup />
+                  </SheetContent>
+                </Sheet>
+              )}
 
               <Button
                 variant="ghost"
@@ -151,15 +162,19 @@ export default function AdminPage() {
           </div>
         </header>
 
-        <Tabs defaultValue="players" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 max-w-md mb-6 bg-card border border-border">
-            <TabsTrigger value="players" className="font-mono uppercase text-xs data-[state=active]:text-primary data-[state=active]:bg-background">Spielerverwaltung</TabsTrigger>
-            <TabsTrigger value="bracket" className="font-mono uppercase text-xs data-[state=active]:text-secondary data-[state=active]:bg-background">Bracket & Karten</TabsTrigger>
-          </TabsList>
+        <Tabs key={role} defaultValue={role === "admin" ? "players" : "bracket"} className="w-full">
+          {role === "admin" && (
+            <TabsList className="grid w-full grid-cols-2 max-w-md mb-6 bg-card border border-border">
+              <TabsTrigger value="players" className="font-mono uppercase text-xs data-[state=active]:text-primary data-[state=active]:bg-background">Spielerverwaltung</TabsTrigger>
+              <TabsTrigger value="bracket" className="font-mono uppercase text-xs data-[state=active]:text-secondary data-[state=active]:bg-background">Bracket & Karten</TabsTrigger>
+            </TabsList>
+          )}
 
-          <TabsContent value="players" className="animate-in fade-in-50 zoom-in-95 duration-200">
-            <PlayerManagement />
-          </TabsContent>
+          {role === "admin" && (
+            <TabsContent value="players" className="animate-in fade-in-50 zoom-in-95 duration-200">
+              <PlayerManagement />
+            </TabsContent>
+          )}
 
           <TabsContent value="bracket" className="animate-in fade-in-50 zoom-in-95 duration-200">
             <BracketMapRoll />

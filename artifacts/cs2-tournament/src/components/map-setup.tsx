@@ -59,11 +59,15 @@ export default function MapSetup() {
   const [ftpDir, setFtpDir] = useState("game/csgo/MatchZy/");
   const [isSavingConfig, setIsSavingConfig] = useState(false);
 
+  // Admin password editing state variables
+  const [adminPassword, setAdminPassword] = useState("");
+  const [showAdminPw, setShowAdminPw] = useState(false);
+
   useEffect(() => {
-    const adminPassword = sessionStorage.getItem("cs2_admin_password") ?? "";
+    const currentAdminPassword = sessionStorage.getItem("cs2_admin_password") ?? "";
     fetch("/api/config/server", {
       headers: {
-        "x-admin-password": adminPassword
+        "x-admin-password": currentAdminPassword
       }
     })
       .then((res) => {
@@ -83,6 +87,7 @@ export default function MapSetup() {
         setFtpPassword(config.ftpPassword ?? "");
         setFtpDir(config.ftpDir ?? "game/csgo/MatchZy/");
         setAutoStartMatch(config.autoStartMatch ?? true);
+        setAdminPassword(config.adminPassword ?? "");
       })
       .catch((err) => console.error("Error loading server settings:", err));
   }, []);
@@ -90,12 +95,12 @@ export default function MapSetup() {
   const handleSaveConfig = async () => {
     setIsSavingConfig(true);
     try {
-      const adminPassword = sessionStorage.getItem("cs2_admin_password") ?? "";
+      const currentAdminPassword = sessionStorage.getItem("cs2_admin_password") ?? "";
       const res = await fetch("/api/config/server", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-admin-password": adminPassword
+          "x-admin-password": currentAdminPassword
         },
         body: JSON.stringify({
           connectionString,
@@ -109,7 +114,8 @@ export default function MapSetup() {
           ftpPort: Number(ftpPort) || 21,
           ftpUser,
           ftpPassword,
-          ftpDir
+          ftpDir,
+          adminPassword
         })
       });
 
@@ -126,14 +132,14 @@ export default function MapSetup() {
     setIsStartingMatch(true);
     setRconStatus("Verbindungsaufbau & MatchZy Pipeline initiiert...");
     try {
-      const adminPassword = sessionStorage.getItem("cs2_admin_password") ?? "";
+      const currentAdminPassword = sessionStorage.getItem("cs2_admin_password") ?? "";
       
       // Save current configuration first to ensure latest is used
       const saveRes = await fetch("/api/config/server", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-admin-password": adminPassword
+          "x-admin-password": currentAdminPassword
         },
         body: JSON.stringify({
           connectionString,
@@ -147,7 +153,8 @@ export default function MapSetup() {
           ftpPort: Number(ftpPort) || 21,
           ftpUser,
           ftpPassword,
-          ftpDir
+          ftpDir,
+          adminPassword
         })
       });
 
@@ -156,7 +163,7 @@ export default function MapSetup() {
       const res = await fetch("/api/matchzy/start", {
         method: "POST",
         headers: { 
-          "x-admin-password": adminPassword
+          "x-admin-password": currentAdminPassword
         }
       });
 
@@ -384,6 +391,27 @@ export default function MapSetup() {
                 tabIndex={-1}
               >
                 {showRconPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Admin-Passwort (für Einstellungen & Spielerverwaltung)</label>
+            <div className="relative">
+              <Input
+                type={showAdminPw ? "text" : "password"}
+                placeholder="Neues Admin-Passwort eingeben..."
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+                className="font-mono text-xs bg-black/50 border-green-500/30 pr-10"
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => setShowAdminPw((v) => !v)}
+                tabIndex={-1}
+              >
+                {showAdminPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>

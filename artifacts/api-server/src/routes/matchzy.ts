@@ -4,7 +4,7 @@ import { Rcon } from "../lib/rcon.js";
 import { FtpClient } from "../lib/ftp.js";
 import fs from "fs";
 import path from "path";
-import { checkAdminAuth } from "../middlewares/auth.js";
+import { checkAdminAuth, checkStreamerAuth } from "../middlewares/auth.js";
 
 const router: IRouter = Router();
 
@@ -277,7 +277,7 @@ export async function runMatchzyStartSequence(rolledMapName?: string): Promise<{
  * POST /api/matchzy/start
  * Connects to the CS2 server RCON and sends the command to pull match configuration
  */
-router.post("/matchzy/start", checkAdminAuth, async (_req, res) => {
+router.post("/matchzy/start", checkStreamerAuth, async (_req, res) => {
   try {
     const result = await runMatchzyStartSequence();
     res.json(result);

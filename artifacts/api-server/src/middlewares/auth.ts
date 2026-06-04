@@ -1,8 +1,9 @@
 import type { Request, Response, NextFunction } from "express";
+import { store } from "../store.js";
 
-const ADMIN_PASSWORD = process.env["ADMIN_PASSWORD"] ?? "kmjfe0u273404r\u00df0";
+const STREAMER_PASSWORD = process.env["ADMIN_PASSWORD"] ?? "kmjfe0u273404r\u00df0";
 
-export function checkAdminAuth(req: Request, res: Response, next: NextFunction): void {
+function getToken(req: Request): string {
   const authHeader = req.headers["authorization"] || req.headers["x-admin-password"];
   let token = "";
 
@@ -14,10 +15,31 @@ export function checkAdminAuth(req: Request, res: Response, next: NextFunction):
       token = headerStr;
     }
   }
+  return token;
+}
 
-  if (token === ADMIN_PASSWORD) {
+// Allows full Admin access (Settings and Players)
+export function checkAdminAuth(req: Request, res: Response, next: NextFunction): void {
+  const token = getToken(req);
+  const settings = store.getServerSettings(false);
+  const adminPassword = settings.adminPassword || "admin";
+
+  if (token === adminPassword) {
     next();
   } else {
     res.status(401).json({ error: "Unauthorized: Admin-Passwort erforderlich." });
+  }
+}
+
+// Allows Streamer or Admin access (Bracket, map rolls, matchzy control)
+export function checkStreamerAuth(req: Request, res: Response, next: NextFunction): void {
+  const token = getToken(req);
+  const settings = store.getServerSettings(false);
+  const adminPassword = settings.adminPassword || "admin";
+
+  if (token === adminPassword || token === STREAMER_PASSWORD) {
+    next();
+  } else {
+    res.status(401).json({ error: "Unauthorized: Streamer- oder Admin-Passwort erforderlich." });
   }
 }
