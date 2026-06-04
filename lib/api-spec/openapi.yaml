@@ -1,22 +1,30 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: CS2 Tournament API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: players
+    description: Player management
+  - name: teams
+    description: Team management
+  - name: bracket
+    description: Tournament bracket
+  - name: maps
+    description: Map roller
+  - name: server
+    description: CS2 server broadcast
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +32,371 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /players:
+    get:
+      operationId: getPlayers
+      tags: [players]
+      summary: Get all players in the pool
+      responses:
+        "200":
+          description: Player list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Player"
+    post:
+      operationId: addPlayers
+      tags: [players]
+      summary: Add players via bulk name list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkPlayerInput"
+      responses:
+        "201":
+          description: Players added
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Player"
+
+  /players/{id}:
+    patch:
+      operationId: updatePlayer
+      tags: [players]
+      summary: Update player flag or status
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlayerUpdate"
+      responses:
+        "200":
+          description: Updated player
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Player"
+    delete:
+      operationId: deletePlayer
+      tags: [players]
+      summary: Remove a player
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /players/register:
+    post:
+      operationId: registerViewer
+      tags: [players]
+      summary: Viewer self-registers to join tournament queue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ViewerRegistration"
+      responses:
+        "201":
+          description: Registration queued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Player"
+
+  /teams:
+    get:
+      operationId: getTeams
+      tags: [teams]
+      summary: Get current teams A, B, C
+      responses:
+        "200":
+          description: Teams
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Teams"
+
+  /teams/roll:
+    post:
+      operationId: rollTeams
+      tags: [teams]
+      summary: Roll teams from accepted players
+      responses:
+        "200":
+          description: Teams rolled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Teams"
+
+  /bracket:
+    get:
+      operationId: getBracket
+      tags: [bracket]
+      summary: Get current bracket state
+      responses:
+        "200":
+          description: Bracket state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BracketState"
+
+  /bracket/winner:
+    post:
+      operationId: setMatchWinner
+      tags: [bracket]
+      summary: Set the winner of the current match
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchWinnerInput"
+      responses:
+        "200":
+          description: Updated bracket
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BracketState"
+
+  /bracket/reset:
+    post:
+      operationId: resetBracket
+      tags: [bracket]
+      summary: Reset the bracket to initial state
+      responses:
+        "200":
+          description: Reset bracket
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BracketState"
+
+  /maps/roll:
+    post:
+      operationId: rollMap
+      tags: [maps]
+      summary: Randomly roll a map from the map pool
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MapRollInput"
+      responses:
+        "200":
+          description: Rolled map
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MapRollResult"
+
+  /server/broadcast:
+    post:
+      operationId: broadcastServer
+      tags: [server]
+      summary: Broadcast server connection string to current match teams
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServerBroadcastInput"
+      responses:
+        "200":
+          description: Broadcasted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /state:
+    get:
+      operationId: getFullState
+      tags: [bracket]
+      summary: Get full tournament state (players, teams, bracket, rolled map)
+      responses:
+        "200":
+          description: Full state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FullState"
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
+    Player:
+      type: object
+      required: [id, name, flagged, status]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        flagged:
+          type: boolean
+        status:
+          type: string
+          enum: [pending, accepted, rejected]
+        team:
+          type: ["string", "null"]
+          enum: [A, B, C, null]
+        socketId:
+          type: ["string", "null"]
+
+    BulkPlayerInput:
+      type: object
+      required: [names]
+      properties:
+        names:
+          type: array
+          items:
+            type: string
+
+    ViewerRegistration:
+      type: object
+      required: [name, clientId]
+      properties:
+        name:
+          type: string
+        clientId:
+          type: string
+
+    PlayerUpdate:
+      type: object
+      properties:
+        flagged:
+          type: boolean
+        status:
+          type: string
+          enum: [pending, accepted, rejected]
+        team:
+          type: ["string", "null"]
+          enum: [A, B, C, null]
+        socketId:
+          type: ["string", "null"]
+
+    Teams:
+      type: object
+      required: [A, B, C]
+      properties:
+        A:
+          type: array
+          items:
+            $ref: "#/components/schemas/Player"
+        B:
+          type: array
+          items:
+            $ref: "#/components/schemas/Player"
+        C:
+          type: array
+          items:
+            $ref: "#/components/schemas/Player"
+
+    BracketState:
+      type: object
+      required: [currentMatch, match1Winner, match2Winner, match3Winner, rolledMap]
+      properties:
+        currentMatch:
+          type: integer
+        match1:
+          type: ["string", "null"]
+        match2:
+          type: ["string", "null"]
+        match3:
+          type: ["string", "null"]
+        match1Winner:
+          type: ["string", "null"]
+        match2Winner:
+          type: ["string", "null"]
+        match3Winner:
+          type: ["string", "null"]
+        rolledMap:
+          type: ["string", "null"]
+
+    MatchWinnerInput:
+      type: object
+      required: [winner]
+      properties:
+        winner:
+          type: string
+          enum: [A, B, C]
+
+    MapRollInput:
+      type: object
+      required: [maps]
+      properties:
+        maps:
+          type: array
+          items:
+            type: string
+
+    MapRollResult:
+      type: object
+      required: [map]
+      properties:
+        map:
+          type: string
+
+    ServerBroadcastInput:
+      type: object
+      required: [connectionString]
+      properties:
+        connectionString:
+          type: string
+
+    SuccessResponse:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: ["string", "null"]
+
+    FullState:
+      type: object
+      required: [players, teams, bracket]
+      properties:
+        players:
+          type: array
+          items:
+            $ref: "#/components/schemas/Player"
+        teams:
+          $ref: "#/components/schemas/Teams"
+        bracket:
+          $ref: "#/components/schemas/BracketState"
