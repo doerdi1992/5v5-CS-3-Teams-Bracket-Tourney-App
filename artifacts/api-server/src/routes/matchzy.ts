@@ -246,13 +246,18 @@ export async function runMatchzyStartSequence(rolledMapName?: string): Promise<{
     }
     const ftpHost = settings.ftpHost || finalHost;
     const ftpPort = settings.ftpPort || 21;
-    const remoteDir = settings.ftpDir || "p3611/";
+    const remoteDir = settings.ftpDir || "p3611/cfg/MatchZy/";
     const fileName = `match_${matchId}.json`;
     const remotePath = remoteDir.endsWith("/") ? `${remoteDir}${fileName}` : `${remoteDir}/${fileName}`;
 
-    // For matchzy_loadmatch, the path is relative to the csgo root
-    // On fshost, p3611/ IS the csgo root, so the RCON path is just the filename
-    const relativeMatchPath = fileName;
+    // For matchzy_loadmatch, path is relative to csgo root (p3611/)
+    // Extract the path after p3611/ for the RCON command
+    let relativeMatchPath = fileName;
+    const p3611Idx = remoteDir.indexOf("p3611/");
+    if (p3611Idx !== -1) {
+      const subPath = remoteDir.substring(p3611Idx + 6); // everything after "p3611/"
+      relativeMatchPath = subPath.endsWith("/") ? `${subPath}${fileName}` : `${subPath}/${fileName}`;
+    }
 
     console.log(`[MatchZy Pipeline] Upload gestartet -> match_${matchId}.json zu ${ftpHost}:${ftpPort}`);
     try {
