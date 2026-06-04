@@ -108,7 +108,7 @@ function MatchCard({
 
   return (
     <div
-      className={`glass p-5 rounded-2xl border relative overflow-hidden transition-all duration-500 ${
+      className={`glass px-4 py-3.5 rounded-xl border relative overflow-hidden transition-all duration-500 ${
         isActive
           ? "border-primary bg-primary/5 shadow-[0_0_30px_rgba(249,115,22,0.15)] scale-[1.01]"
           : isFinished
@@ -122,7 +122,7 @@ function MatchCard({
       )}
 
       {/* Top Header */}
-      <div className="flex justify-between items-center mb-3 font-mono text-[10px]">
+      <div className="flex justify-between items-center mb-2 font-mono text-[10px]">
         <div className="flex items-center gap-1.5">
           {matchNum === 3 ? (
             <Crown className={`w-3.5 h-3.5 ${isActive ? "text-yellow-500 animate-bounce" : "text-yellow-500/60"}`} />
@@ -166,7 +166,7 @@ function MatchCard({
 
       {/* BO3 Score Dots inside Match Card */}
       {matchNum === 3 && finaleBestOf === 3 && leftTeam && rightTeam && !winner && (
-        <div className="flex items-center justify-center gap-6 mt-3 pt-2.5 border-t border-white/5">
+        <div className="flex items-center justify-center gap-6 mt-2.5 pt-2 border-t border-white/5">
           <div className="flex items-center gap-1">
             <div className="flex gap-1">
               {[0, 1].map((i) => (
@@ -329,7 +329,7 @@ export default function StreamerPage() {
       </header>
 
       {/* Main Grid View */}
-      <div className="flex-1 grid grid-cols-12 gap-8 p-8 overflow-hidden relative z-10">
+      <div className="flex-1 grid grid-cols-12 gap-6 p-6 overflow-hidden relative z-10">
         {/* Left Side - 7 columns: Streamer Camera Placeholder Zone */}
         <div className="col-span-7 flex items-center justify-center p-4 h-full">
           {showGuide ? (
@@ -352,7 +352,7 @@ export default function StreamerPage() {
         </div>
 
         {/* Right Side - 5 columns: Map, Bracket & Rosters */}
-        <div className="col-span-5 flex flex-col justify-between h-full gap-4 overflow-y-auto pr-2">
+        <div className="col-span-5 flex flex-col justify-between h-full gap-3 overflow-hidden pr-2">
           {/* 1. Map Section */}
           <div className="w-full">
             {rolledMap ? (
@@ -361,7 +361,7 @@ export default function StreamerPage() {
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5 }}
-                className="w-full relative rounded-2xl overflow-hidden border border-white/10 aspect-video shadow-[0_0_30px_rgba(0,0,0,0.5)] bg-slate-950"
+                className="w-full h-[136px] relative rounded-2xl overflow-hidden border border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.5)] bg-slate-950"
               >
                 {mapImageUrl ? (
                   <motion.img
@@ -394,7 +394,7 @@ export default function StreamerPage() {
                 </div>
               </motion.div>
             ) : (
-              <div className="w-full aspect-video rounded-2xl border border-dashed border-white/10 flex flex-col items-center justify-center bg-slate-900/20 text-center p-4 gap-2">
+              <div className="w-full h-[136px] rounded-2xl border border-dashed border-white/10 flex flex-col items-center justify-center bg-slate-900/20 text-center p-4 gap-1">
                 <Tv className="w-4 h-4 text-muted-foreground/40 animate-pulse" />
                 <div>
                   <p className="font-mono text-muted-foreground text-[10px] uppercase tracking-wider">Karten-Auswahl ausstehend</p>
@@ -405,8 +405,8 @@ export default function StreamerPage() {
           </div>
 
           {/* 2. Tournament Bracket (Turnier Verlauf) */}
-          <div className="flex-1 flex flex-col gap-3 justify-center">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground font-black pl-1 mb-1 block">
+          <div className="flex-1 flex flex-col gap-2.5 justify-center">
+            <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground font-black pl-1 mb-0.5 block">
               Turnier Verlauf
             </span>
 
