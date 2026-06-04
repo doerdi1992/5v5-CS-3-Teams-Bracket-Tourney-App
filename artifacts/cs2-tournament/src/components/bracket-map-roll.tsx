@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { RefreshCw, Send, Trophy, Eye, EyeOff, Dices, Zap, Save } from "lucide-react";
+import { RefreshCw, Send, Trophy, Eye, EyeOff, Dices, Zap, Save, Crown } from "lucide-react";
 
 // ─── Animation constants ─────────────────────────────────────────────────────
 const WINNER_IDX = 68;        // winner tile index in the strip
@@ -65,6 +65,11 @@ interface ExtendedBracket {
   rolledMap: string | null;
   finaleBestOf?: 1 | 3;
   finaleScore?: { left: number; right: number };
+  match1Rounds?: { left: number; right: number } | null;
+  match2Rounds?: { left: number; right: number } | null;
+  match3Rounds?: { left: number; right: number } | null;
+  tiebreakerWinner?: string | null;
+  tiebreakerRounds?: Record<string, number> | null;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -84,6 +89,8 @@ export default function BracketMapRoll() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [stripItems, setStripItems] = useState<string[]>([]);
   const [revealed, setRevealed] = useState(false);
+  const [leftScore, setLeftScore] = useState<number>(0);
+  const [rightScore, setRightScore] = useState<number>(0);
 
   // Persist to localStorage on change
   useEffect(() => { localStorage.setItem("cs2_map_pool", mapPool); }, [mapPool]);
@@ -221,8 +228,14 @@ export default function BracketMapRoll() {
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleSetWinner = (winner: "A" | "B" | "C") => {
     setWinnerMut.mutate(
-      { data: { winner } },
-      { onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetFullStateQueryKey() }) }
+      { data: { winner, rounds: { left: leftScore, right: rightScore } } as any },
+      {
+        onSuccess: () => {
+          setLeftScore(0);
+          setRightScore(0);
+          queryClient.invalidateQueries({ queryKey: getGetFullStateQueryKey() });
+        }
+      }
     );
   };
 
@@ -334,11 +347,26 @@ export default function BracketMapRoll() {
           <CardContent>
             {bracket ? (
               <div className="space-y-4">
+                {bracket.currentMatch === 4 && (
+                  <div className="p-5 border border-yellow-500/30 rounded-xl bg-yellow-500/5 text-center flex flex-col items-center gap-2 animate-in fade-in slide-in-from-top-4 duration-300">
+                    <Crown className="w-10 h-10 text-yellow-500 animate-bounce" />
+                    <h2 className="text-[10px] font-mono tracking-widest text-yellow-500 uppercase font-black">Turnier-Champion</h2>
+                    <h1 className="text-3xl font-mono tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-amber-200 to-yellow-500 uppercase font-black mt-1">
+                      TEAM {bracket.tiebreakerWinner || bracket.match3Winner}
+                    </h1>
+                    {bracket.tiebreakerWinner && (
+                      <p className="text-xs font-mono text-muted-foreground uppercase mt-1 max-w-md">
+                        Gewonnen durch Tiebreaker (Meiste Runden: A: {bracket.tiebreakerRounds?.A}, B: {bracket.tiebreakerRounds?.B}, C: {bracket.tiebreakerRounds?.C})
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 {[
-                  { label: "Partie 1", matchNum: 1, left: "TEAM A", right: "TEAM B", winner: bracket.match1Winner, leftTeam: "A", rightTeam: "B", match: bracket.match1 },
-                  { label: "Partie 2", matchNum: 2, left: bracket.match2 ? `TEAM ${bracket.match2.split(" ")[0]}` : "?", right: bracket.match2 ? `TEAM ${bracket.match2.split(" ")[2]}` : "?", winner: bracket.match2Winner, leftTeam: bracket.match2?.split(" ")[0] ?? null, rightTeam: bracket.match2?.split(" ")[2] ?? null, match: bracket.match2 },
-                  { label: "Finale", matchNum: 3, left: bracket.match3 ? `TEAM ${bracket.match3.split(" ")[0]}` : "?", right: bracket.match3 ? `TEAM ${bracket.match3.split(" ")[2]}` : "?", winner: bracket.match3Winner, leftTeam: bracket.match3?.split(" ")[0] ?? null, rightTeam: bracket.match3?.split(" ")[2] ?? null, match: bracket.match3 },
-                ].map(({ label, matchNum, left, right, winner, leftTeam, rightTeam }) => (
+                  { label: "Partie 1", matchNum: 1, left: "TEAM A", right: "TEAM B", winner: bracket.match1Winner, leftTeam: "A", rightTeam: "B", match: bracket.match1, rounds: bracket.match1Rounds },
+                  { label: "Partie 2", matchNum: 2, left: bracket.match2 ? `TEAM ${bracket.match2.split(" ")[0]}` : "?", right: bracket.match2 ? `TEAM ${bracket.match2.split(" ")[2]}` : "?", winner: bracket.match2Winner, leftTeam: bracket.match2?.split(" ")[0] ?? null, rightTeam: bracket.match2?.split(" ")[2] ?? null, match: bracket.match2, rounds: bracket.match2Rounds },
+                  { label: "Finale", matchNum: 3, left: bracket.match3 ? `TEAM ${bracket.match3.split(" ")[0]}` : "?", right: bracket.match3 ? `TEAM ${bracket.match3.split(" ")[2]}` : "?", winner: bracket.match3Winner, leftTeam: bracket.match3?.split(" ")[0] ?? null, rightTeam: bracket.match3?.split(" ")[2] ?? null, match: bracket.match3, rounds: bracket.match3Rounds },
+                ].map(({ label, matchNum, left, right, winner, leftTeam, rightTeam, rounds }) => (
                   <div
                     key={label}
                     className={`p-4 border rounded-md relative overflow-hidden ${bracket.currentMatch === matchNum ? "border-primary bg-primary/5" : "border-border/50"}`}
@@ -371,14 +399,20 @@ export default function BracketMapRoll() {
                     </div>
                     <div className="flex items-center justify-between text-xl font-black font-mono">
                       <div className="flex flex-col items-start w-2/5">
-                        <span className={winner === leftTeam && winner ? teamColorClass(leftTeam) : ""}>{left}</span>
+                        <div className="flex items-center gap-2">
+                          <span className={winner === leftTeam && winner ? teamColorClass(leftTeam) : ""}>{left}</span>
+                          {rounds && <span className="text-sm font-bold text-muted-foreground">({rounds.left})</span>}
+                        </div>
                         <span className="text-[10px] text-muted-foreground/60 font-normal mt-0.5 truncate w-full" title={getTeamPlayersString(leftTeam)}>
                           {getTeamPlayersString(leftTeam) || "Keine Spieler"}
                         </span>
                       </div>
                       <span className="text-muted-foreground text-sm">VS</span>
                       <div className="flex flex-col items-end w-2/5 text-right">
-                        <span className={winner === rightTeam && winner ? teamColorClass(rightTeam) : ""}>{right}</span>
+                        <div className="flex items-center justify-end gap-2">
+                          {rounds && <span className="text-sm font-bold text-muted-foreground">({rounds.right})</span>}
+                          <span className={winner === rightTeam && winner ? teamColorClass(rightTeam) : ""}>{right}</span>
+                        </div>
                         <span className="text-[10px] text-muted-foreground/60 font-normal mt-0.5 truncate w-full" title={getTeamPlayersString(rightTeam)}>
                           {getTeamPlayersString(rightTeam) || "Keine Spieler"}
                         </span>
@@ -438,6 +472,37 @@ export default function BracketMapRoll() {
                         : "Aktive Partie auflösen"
                       }
                     </p>
+
+                    <div className="flex gap-4 items-center mb-4 bg-background/50 p-3 rounded-lg border border-border/40 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <div className="flex-1 space-y-1">
+                        <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                          Runden TEAM {currentTeams[0]}
+                        </label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={leftScore || ""}
+                          onChange={(e) => setLeftScore(Number(e.target.value))}
+                          placeholder="z.B. 13"
+                          className="font-mono bg-background/50 h-9 text-sm"
+                        />
+                      </div>
+                      <div className="text-muted-foreground text-xs font-mono self-end pb-2">:</div>
+                      <div className="flex-1 space-y-1">
+                        <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground text-right block">
+                          Runden TEAM {currentTeams[1]}
+                        </label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={rightScore || ""}
+                          onChange={(e) => setRightScore(Number(e.target.value))}
+                          placeholder="z.B. 8"
+                          className="font-mono bg-background/50 h-9 text-sm text-right"
+                        />
+                      </div>
+                    </div>
+
                     <div className="flex gap-2">
                       {currentTeams.map((t) => (
                         <Button

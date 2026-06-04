@@ -48,6 +48,9 @@ export interface BracketState {
   rolledMap: string | null;
   finaleBestOf: 1 | 3;
   finaleScore: { left: number; right: number };
+  match1Rounds?: { left: number; right: number } | null;
+  match2Rounds?: { left: number; right: number } | null;
+  match3Rounds?: { left: number; right: number } | null;
 }
 
 function freshBracket(): BracketState {
@@ -62,6 +65,9 @@ function freshBracket(): BracketState {
     rolledMap: null,
     finaleBestOf: 1,
     finaleScore: { left: 0, right: 0 },
+    match1Rounds: null,
+    match2Rounds: null,
+    match3Rounds: null,
   };
 }
 
@@ -236,10 +242,11 @@ class Store {
     return { A: tA, B: tB, C: tC };
   }
 
-  setMatchWinner(winner: TeamName): BracketState {
+  setMatchWinner(winner: TeamName, rounds?: { left: number; right: number }): BracketState {
     const b = this.bracketState;
     if (b.currentMatch === 1) {
       b.match1Winner = winner;
+      b.match1Rounds = rounds || null;
       if (winner === "A") { b.match2 = "A vs B"; b.match3 = "A vs C"; }
       else { b.match2 = "A vs C"; b.match3 = "B vs C"; }
       // Correct logic: if A wins Match1: M2 = B vs C, M3 = A vs (winner of M2)
@@ -249,6 +256,7 @@ class Store {
       b.currentMatch = 2;
     } else if (b.currentMatch === 2) {
       b.match2Winner = winner;
+      b.match2Rounds = rounds || null;
       b.currentMatch = 3;
     } else if (b.currentMatch === 3) {
       if (b.finaleBestOf === 3) {
@@ -259,6 +267,13 @@ class Store {
         } else {
           b.finaleScore.right++;
         }
+        // Accumulate rounds for Match 3
+        if (rounds) {
+          b.match3Rounds = {
+            left: (b.match3Rounds?.left || 0) + rounds.left,
+            right: (b.match3Rounds?.right || 0) + rounds.right,
+          };
+        }
         // Check if someone reached 2 wins
         if (b.finaleScore.left >= 2 || b.finaleScore.right >= 2) {
           b.match3Winner = winner;
@@ -267,6 +282,7 @@ class Store {
         // Otherwise stay on match 3 for next sub-game
       } else {
         b.match3Winner = winner;
+        b.match3Rounds = rounds || null;
         b.currentMatch = 4;
       }
     }
@@ -330,11 +346,57 @@ class Store {
     // Don't reset match3Winner if already set
   }
 
+  getTiebreakerWinner(): { team: TeamName; rounds: Record<TeamName, number> } | null {
+    const b = this.bracketState;
+    if (b.currentMatch >= 4 && b.match1Winner && b.match2Winner && b.match3Winner) {
+      const wins = { A: 0, B: 0, C: 0 };
+      wins[b.match1Winner as TeamName]++;
+      wins[b.match2Winner as TeamName]++;
+      wins[b.match3Winner as TeamName]++;
+
+      if (wins.A === 1 && wins.B === 1 && wins.C === 1) {
+        const rounds = { A: 0, B: 0, C: 0 };
+        const addMatchRounds = (matchStr: string | null, roundsObj: { left: number; right: number } | null | undefined) => {
+          if (!matchStr || !roundsObj) return;
+          const parts = matchStr.split(" ");
+          if (parts.length >= 3) {
+            const leftTeam = parts[0] as TeamName;
+            const rightTeam = parts[2] as TeamName;
+            rounds[leftTeam] += roundsObj.left;
+            rounds[rightTeam] += roundsObj.right;
+          }
+        };
+
+        addMatchRounds(b.match1, b.match1Rounds);
+        addMatchRounds(b.match2, b.match2Rounds);
+        addMatchRounds(b.match3, b.match3Rounds);
+
+        let bestTeam: TeamName = "A";
+        let maxRounds = rounds.A;
+        if (rounds.B > maxRounds) {
+          bestTeam = "B";
+          maxRounds = rounds.B;
+        }
+        if (rounds.C > maxRounds) {
+          bestTeam = "C";
+          maxRounds = rounds.C;
+        }
+        return { team: bestTeam, rounds };
+      }
+    }
+    return null;
+  }
+
   getFullState() {
+    const tiebreaker = this.getTiebreakerWinner();
     return {
       players: this.getAllPlayers(),
       teams: this.getTeams(),
-      bracket: this.bracketState,
+      bracket: {
+        ...this.bracketState,
+        tiebreakerWinner: tiebreaker ? tiebreaker.team : null,
+        tiebreakerRounds: tiebreaker ? tiebreaker.rounds : null,
+      },
       mapImages: this.getMapImages(),
     };
   }

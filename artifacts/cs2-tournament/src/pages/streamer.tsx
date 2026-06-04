@@ -494,7 +494,7 @@ export default function StreamerPage() {
       </div>
 
       {/* Victory Showcase if match3Winner is set and currentMatch is 4 */}
-      {currentMatch === 4 && bracket.match3Winner && (
+      {currentMatch === 4 && ((bracket as any).tiebreakerWinner || bracket.match3Winner) && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -514,17 +514,24 @@ export default function StreamerPage() {
               <h1 className="text-5xl font-mono tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-amber-200 to-yellow-500 drop-shadow-[0_0_30px_rgba(234,179,8,0.5)] uppercase font-black mt-2">
                 CHAMPION
               </h1>
-              <h2 className={`text-4xl font-mono font-black mt-4 uppercase ${getTeamTextColor(bracket.match3Winner)} drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]`}>
-                TEAM {bracket.match3Winner}
+              <h2 className={`text-4xl font-mono font-black mt-4 uppercase ${getTeamTextColor((bracket as any).tiebreakerWinner || bracket.match3Winner)} drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]`}>
+                TEAM {(bracket as any).tiebreakerWinner || bracket.match3Winner}
               </h2>
             </div>
+
+            {(bracket as any).tiebreakerWinner && (
+              <p className="text-sm font-mono text-muted-foreground uppercase tracking-wider max-w-md mt-1 border-t border-white/5 pt-3">
+                Gewonnen durch Tiebreaker<br />
+                (Meiste Runden: A: {(bracket as any).tiebreakerRounds?.A}, B: {(bracket as any).tiebreakerRounds?.B}, C: {(bracket as any).tiebreakerRounds?.C})
+              </p>
+            )}
 
             <div className="w-full mt-6 space-y-3">
               <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest flex items-center justify-center gap-1.5">
                 <Users className="w-4 h-4" /> MEISTER ROSTER
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                {padRoster(teams[bracket.match3Winner as keyof typeof teams] || []).map((p, idx) => (
+                {padRoster(teams[((bracket as any).tiebreakerWinner || bracket.match3Winner) as keyof typeof teams] || []).map((p, idx) => (
                   p.name !== "—" && (
                     <div key={p.id || idx} className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-black/40 border border-white/5 shadow-inner">
                       <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />

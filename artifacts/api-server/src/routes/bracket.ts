@@ -10,7 +10,12 @@ import fs from "fs";
 const router: IRouter = Router();
 
 router.get("/bracket", (_req, res) => {
-  res.json(store.bracketState);
+  const tiebreaker = store.getTiebreakerWinner();
+  res.json({
+    ...store.bracketState,
+    tiebreakerWinner: tiebreaker ? tiebreaker.team : null,
+    tiebreakerRounds: tiebreaker ? tiebreaker.rounds : null,
+  });
 });
 
 router.post("/bracket/winner", (req, res) => {
@@ -19,9 +24,16 @@ router.post("/bracket/winner", (req, res) => {
     res.status(400).json({ error: "Invalid body" });
     return;
   }
-  const bracket = store.setMatchWinner(parsed.data.winner as TeamName);
+  const rounds = req.body.rounds as { left: number; right: number } | undefined;
+  const bracket = store.setMatchWinner(parsed.data.winner as TeamName, rounds);
   broadcastStateUpdate();
-  res.json(bracket);
+  
+  const tiebreaker = store.getTiebreakerWinner();
+  res.json({
+    ...bracket,
+    tiebreakerWinner: tiebreaker ? tiebreaker.team : null,
+    tiebreakerRounds: tiebreaker ? tiebreaker.rounds : null,
+  });
 });
 
 router.post("/bracket/reset", (_req, res) => {

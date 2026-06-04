@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Copy, Server, Play, ExternalLink, Tv } from "lucide-react";
+import { Copy, Server, Play, ExternalLink, Tv, Crown } from "lucide-react";
 
 const getSteamUrl = (connStr: string | null): string => {
   if (!connStr) return "";
@@ -361,18 +361,37 @@ export default function ViewerPage() {
               <CardContent>
                 {bracket ? (
                   <>
+                    {(bracket as any).currentMatch === 4 && (
+                      <div className="mb-6 p-5 border border-yellow-500/30 rounded-xl bg-yellow-500/5 text-center flex flex-col items-center gap-2 animate-in fade-in slide-in-from-top-4 duration-300">
+                        <Crown className="w-10 h-10 text-yellow-500 animate-bounce" />
+                        <h2 className="text-[10px] font-mono tracking-widest text-yellow-500 uppercase font-black">Turnier-Champion</h2>
+                        <h1 className="text-3xl font-mono tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-amber-200 to-yellow-500 uppercase font-black mt-1">
+                          TEAM {(bracket as any).tiebreakerWinner || bracket.match3Winner}
+                        </h1>
+                        {(bracket as any).tiebreakerWinner && (
+                          <p className="text-xs font-mono text-muted-foreground uppercase mt-1 max-w-md">
+                            Gewonnen durch Tiebreaker (Meiste Runden: A: {(bracket as any).tiebreakerRounds?.A}, B: {(bracket as any).tiebreakerRounds?.B}, C: {(bracket as any).tiebreakerRounds?.C})
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     <div className="grid gap-4 md:grid-cols-3 mb-6">
                       {[
-                        { label: "Partie 1", num: 1, left: "TEAM A", right: "TEAM B", winner: bracket.match1Winner, lTeam: "A", rTeam: "B" },
-                        { label: "Partie 2", num: 2, left: bracket.match2 ? `TEAM ${bracket.match2.split(" ")[0]}` : "?", right: bracket.match2 ? `TEAM ${bracket.match2.split(" ")[2]}` : "?", winner: bracket.match2Winner, lTeam: bracket.match2?.split(" ")[0] ?? null, rTeam: bracket.match2?.split(" ")[2] ?? null },
-                        { label: "Finale", num: 3, left: bracket.match3 ? `TEAM ${bracket.match3.split(" ")[0]}` : "?", right: bracket.match3 ? `TEAM ${bracket.match3.split(" ")[2]}` : "?", winner: bracket.match3Winner, lTeam: bracket.match3?.split(" ")[0] ?? null, rTeam: bracket.match3?.split(" ")[2] ?? null },
-                      ].map(({ label, num, left, right, winner, lTeam, rTeam }) => (
+                        { label: "Partie 1", num: 1, left: "TEAM A", right: "TEAM B", winner: bracket.match1Winner, lTeam: "A", rTeam: "B", rounds: (bracket as any).match1Rounds },
+                        { label: "Partie 2", num: 2, left: bracket.match2 ? `TEAM ${bracket.match2.split(" ")[0]}` : "?", right: bracket.match2 ? `TEAM ${bracket.match2.split(" ")[2]}` : "?", winner: bracket.match2Winner, lTeam: bracket.match2?.split(" ")[0] ?? null, rTeam: bracket.match2?.split(" ")[2] ?? null, rounds: (bracket as any).match2Rounds },
+                        { label: "Finale", num: 3, left: bracket.match3 ? `TEAM ${bracket.match3.split(" ")[0]}` : "?", right: bracket.match3 ? `TEAM ${bracket.match3.split(" ")[2]}` : "?", winner: bracket.match3Winner, lTeam: bracket.match3?.split(" ")[0] ?? null, rTeam: bracket.match3?.split(" ")[2] ?? null, rounds: (bracket as any).match3Rounds },
+                      ].map(({ label, num, left, right, winner, lTeam, rTeam, rounds }) => (
                         <div key={label} className={`p-4 border rounded-lg ${bracket.currentMatch === num ? "border-primary shadow-[0_0_15px_rgba(249,115,22,0.2)]" : "border-border"}`}>
                           <h3 className="font-mono text-sm text-muted-foreground mb-2 uppercase">{label}</h3>
                           <div className="flex justify-between items-center text-lg font-bold">
-                            <span className={winner === lTeam && winner ? "text-primary" : ""}>{left}</span>
-                            <span className="text-muted-foreground text-xs">VS</span>
-                            <span className={winner === rTeam && winner ? "text-primary" : ""}>{right}</span>
+                            <span className={winner === lTeam && winner ? "text-primary" : ""}>
+                              {left} {rounds && <span className="text-xs text-muted-foreground font-normal font-mono">({rounds.left})</span>}
+                            </span>
+                            <span className="text-muted-foreground text-xs font-normal px-2">VS</span>
+                            <span className={winner === rTeam && winner ? "text-primary" : ""}>
+                              {rounds && <span className="text-xs text-muted-foreground font-normal font-mono">({rounds.right})</span>} {right}
+                            </span>
                           </div>
                           {winner && <div className="mt-2 text-center text-xs font-mono text-primary">SIEGER: TEAM {winner}</div>}
                         </div>
