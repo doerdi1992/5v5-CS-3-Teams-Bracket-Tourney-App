@@ -111,7 +111,7 @@ export default function AdminPage() {
           <TabsList className="grid w-full grid-cols-3 max-w-xl mb-6 bg-card border border-border">
             <TabsTrigger value="players" className="font-mono uppercase text-xs data-[state=active]:text-primary data-[state=active]:bg-background">Spielerverwaltung</TabsTrigger>
             <TabsTrigger value="bracket" className="font-mono uppercase text-xs data-[state=active]:text-secondary data-[state=active]:bg-background">Bracket & Karten</TabsTrigger>
-            <TabsTrigger value="mapsetup" className="font-mono uppercase text-xs data-[state=active]:text-orange-400 data-[state=active]:bg-background">Karten-Bilder</TabsTrigger>
+            <TabsTrigger value="mapsetup" className="font-mono uppercase text-xs data-[state=active]:text-orange-400 data-[state=active]:bg-background">Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="players" className="animate-in fade-in-50 zoom-in-95 duration-200">

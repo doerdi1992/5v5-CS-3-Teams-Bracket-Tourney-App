@@ -4,13 +4,16 @@ import {
   useSetMapImage,
   useDeleteMapImage,
   getGetMapImagesQueryKey,
+  useBroadcastServer,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Save, Image as ImageIcon, ExternalLink } from "lucide-react";
+import { Plus, Trash2, Save, Image as ImageIcon, ExternalLink, Send, Eye, EyeOff, Zap } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 const DEFAULT_MAPS = ["Mirage", "Inferno", "Dust2", "Nuke", "Overpass", "Anubis", "Vertigo", "Ancient"];
 
@@ -31,8 +34,37 @@ export default function MapSetup() {
 
   const setImageMut = useSetMapImage();
   const deleteImageMut = useDeleteMapImage();
+  const broadcastMut = useBroadcastServer();
 
   const [rows, setRows] = useState<MapRow[]>([]);
+
+  const [connectionString, setConnectionString] = useState(() =>
+    localStorage.getItem("cs2_connection_string") ?? ""
+  );
+  const [autoSend, setAutoSend] = useState(() =>
+    localStorage.getItem("cs2_auto_send") === "1"
+  );
+  const [showConnection, setShowConnection] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem("cs2_connection_string", connectionString);
+  }, [connectionString]);
+
+  useEffect(() => {
+    localStorage.setItem("cs2_auto_send", autoSend ? "1" : "0");
+  }, [autoSend]);
+
+  const handleBroadcast = () => {
+    if (!connectionString.trim()) return;
+    broadcastMut.mutate(
+      { data: { connectionString } },
+      {
+        onSuccess: () => {
+          toast({ title: "Gesendet", description: "Server-Verbindungsdaten an aktive Teams übertragen." });
+        },
+      }
+    );
+  };
   const [initialized, setInitialized] = useState(false);
 
   // Initialize rows from server data + default maps
@@ -114,6 +146,66 @@ export default function MapSetup() {
               Öffnen
             </Button>
           </a>
+        </CardContent>
+      </Card>
+
+      {/* Server Broadcast */}
+      <Card className="border-destructive/20 bg-destructive/5">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="font-mono text-destructive flex items-center gap-2">
+              <Send className="w-5 h-5" />
+              SERVER SENDEN
+            </CardTitle>
+            <span className="flex items-center gap-1.5 text-[10px] font-mono text-green-500/70 uppercase tracking-wider">
+              <Save className="w-3 h-3" />
+              Auto-gespeichert
+            </span>
+          </div>
+          <CardDescription className="font-mono text-xs">Verbindungsdaten an aktive Teams übertragen</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="relative">
+            <Input
+              type={showConnection ? "text" : "password"}
+              placeholder="connect 192.168.1.1:27015; password xyz"
+              value={connectionString}
+              onChange={(e) => setConnectionString(e.target.value)}
+              className="font-mono font-bold text-sm bg-black/50 border-destructive/30 focus-visible:ring-destructive pr-10"
+            />
+            <button
+              type="button"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => setShowConnection((v) => !v)}
+              tabIndex={-1}
+            >
+              {showConnection ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+
+          {/* Auto-send toggle */}
+          <div className="flex items-center justify-between p-3 rounded-md border border-border/30 bg-background/30">
+            <div className="flex items-center gap-2">
+              <Zap className={`w-4 h-4 ${autoSend ? "text-yellow-500" : "text-muted-foreground"}`} />
+              <Label htmlFor="auto-send" className="font-mono text-xs uppercase tracking-wider cursor-pointer">
+                Auto-Senden nach Karten-Roll
+              </Label>
+            </div>
+            <Switch
+              id="auto-send"
+              checked={autoSend}
+              onCheckedChange={setAutoSend}
+            />
+          </div>
+
+          <Button
+            variant="destructive"
+            className="w-full font-mono font-bold tracking-widest"
+            onClick={handleBroadcast}
+            disabled={!connectionString.trim() || broadcastMut.isPending}
+          >
+            AN SPIELER ÜBERTRAGEN
+          </Button>
         </CardContent>
       </Card>
 
