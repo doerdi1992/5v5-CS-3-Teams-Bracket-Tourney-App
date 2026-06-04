@@ -23,51 +23,20 @@ const ITEM_WIDTH = 196;       // px per tile (width + gap)
 const DURATION = 7500;        // ms total spin duration
 const VOLUME = 0.10;          // locked audio volume (10%)
 
-// ─── Audio synthesiser ────────────────────────────────────────────────────────
-function playTick(ctx: AudioContext, vol: number) {
-  if (vol <= 0) return;
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-  osc.type = "triangle";
-  osc.frequency.setValueAtTime(1400, ctx.currentTime);
-  osc.frequency.exponentialRampToValueAtTime(900, ctx.currentTime + 0.04);
-  gain.gain.setValueAtTime(Math.min(vol, 1), ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.07);
-  osc.start(ctx.currentTime);
-  osc.stop(ctx.currentTime + 0.07);
-}
-
-function playReveal(ctx: AudioContext, vol: number) {
-  if (vol <= 0) return;
-  // Deep thud
-  const o1 = ctx.createOscillator(); const g1 = ctx.createGain();
-  o1.connect(g1); g1.connect(ctx.destination);
-  o1.type = "sine";
-  o1.frequency.setValueAtTime(200, ctx.currentTime);
-  o1.frequency.exponentialRampToValueAtTime(55, ctx.currentTime + 0.65);
-  g1.gain.setValueAtTime(0.7 * vol, ctx.currentTime);
-  g1.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.65);
-  o1.start(ctx.currentTime); o1.stop(ctx.currentTime + 0.65);
-  // High chime
-  const o2 = ctx.createOscillator(); const g2 = ctx.createGain();
-  o2.connect(g2); g2.connect(ctx.destination);
-  o2.type = "sine";
-  o2.frequency.setValueAtTime(1760, ctx.currentTime + 0.06);
-  g2.gain.setValueAtTime(0.0001, ctx.currentTime);
-  g2.gain.linearRampToValueAtTime(0.35 * vol, ctx.currentTime + 0.09);
-  g2.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.3);
-  o2.start(ctx.currentTime); o2.stop(ctx.currentTime + 1.3);
-  // Shimmer
-  const o3 = ctx.createOscillator(); const g3 = ctx.createGain();
-  o3.connect(g3); g3.connect(ctx.destination);
-  o3.type = "sine";
-  o3.frequency.setValueAtTime(2200, ctx.currentTime + 0.12);
-  g3.gain.setValueAtTime(0.0001, ctx.currentTime);
-  g3.gain.linearRampToValueAtTime(0.22 * vol, ctx.currentTime + 0.16);
-  g3.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.0);
-  o3.start(ctx.currentTime); o3.stop(ctx.currentTime + 1.0);
+// ─── Audio Buffer Player ──────────────────────────────────────────────────────
+function playBuffer(ctx: AudioContext, buffer: AudioBuffer | null, vol: number) {
+  if (!buffer || vol <= 0) return;
+  try {
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    const gainNode = ctx.createGain();
+    gainNode.gain.value = vol;
+    source.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    source.start(0);
+  } catch (err) {
+    console.warn("Failed to play audio buffer:", err);
+  }
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -126,6 +95,8 @@ export default function BracketMapRoll() {
   const prevScrollRef = useRef(0);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const containerWidthRef = useRef(800);
+  const tickBufferRef = useRef<AudioBuffer | null>(null);
+  const revealBufferRef = useRef<AudioBuffer | null>(null);
 
   // ── Mutations ──────────────────────────────────────────────────────────────
   const setWinnerMut = useSetMatchWinner();
@@ -138,6 +109,40 @@ export default function BracketMapRoll() {
     if (audioCtxRef.current.state === "suspended") void audioCtxRef.current.resume();
     return audioCtxRef.current;
   }, []);
+
+  // Preload sound files
+  useEffect(() => {
+    let active = true;
+    const ctx = getAudioCtx();
+
+    async function loadSound(url: string, ref: React.MutableRefObject<AudioBuffer | null>) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const arrayBuffer = await res.arrayBuffer();
+        ctx.decodeAudioData(
+          arrayBuffer,
+          (buffer) => {
+            if (active) {
+              ref.current = buffer;
+            }
+          },
+          (err) => {
+            console.error("Error decoding audio data for:", url, err);
+          }
+        );
+      } catch (err) {
+        console.error("Error loading sound:", url, err);
+      }
+    }
+
+    void loadSound("/sounds/csgo_ui_crate_item_scroll.wav", tickBufferRef);
+    void loadSound("/sounds/csgo_ui_crate_open.wav", revealBufferRef);
+
+    return () => {
+      active = false;
+    };
+  }, [getAudioCtx]);
 
   // ── rAF animation loop ────────────────────────────────────────────────────
   const startAnimation = useCallback((totalScroll: number, ctx: AudioContext, winner: string) => {
@@ -168,7 +173,7 @@ export default function BracketMapRoll() {
       for (let i = prevTile + 1; i <= curTile; i++) {
         // Volume ramps up as animation slows (more tension near the end)
         const vol = (0.10 + 0.65 * t) * VOLUME;
-        playTick(ctx, vol);
+        playBuffer(ctx, tickBufferRef.current, vol);
       }
       prevScrollRef.current = scrollPos;
 
@@ -180,7 +185,7 @@ export default function BracketMapRoll() {
         }
         setIsSpinning(false);
         setRevealed(true);
-        playReveal(ctx, VOLUME);
+        playBuffer(ctx, revealBufferRef.current, VOLUME);
 
         // Save the rolled map on the server and broadcast the update to viewers
         fetch("/api/maps/confirm-roll", {
