@@ -128,20 +128,22 @@ export default function AdminPage() {
 
             {/* Action buttons */}
             <div className="flex items-center gap-3">
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 h-9 px-4 border-border/60 hover:border-primary/50 hover:bg-primary/5 transition-all">
-                    <Settings className="w-4 h-4 text-muted-foreground" />
-                    Einstellungen
-                  </Button>
-                </SheetTrigger>
-                <SheetContent className="sm:max-w-2xl w-[600px] overflow-y-auto bg-background border-l border-border p-6">
-                  <SheetHeader className="mb-6">
-                    <SheetTitle className="font-mono text-xl uppercase text-primary">Einstellungen</SheetTitle>
-                  </SheetHeader>
-                  <MapSetup />
-                </SheetContent>
-              </Sheet>
+              {role === "admin" && (
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 h-9 px-4 border-border/60 hover:border-primary/50 hover:bg-primary/5 transition-all">
+                      <Settings className="w-4 h-4 text-muted-foreground" />
+                      Einstellungen
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent className="sm:max-w-2xl w-[600px] overflow-y-auto bg-background border-l border-border p-6">
+                    <SheetHeader className="mb-6">
+                      <SheetTitle className="font-mono text-xl uppercase text-primary">Einstellungen</SheetTitle>
+                    </SheetHeader>
+                    <MapSetup />
+                  </SheetContent>
+                </Sheet>
+              )}
 
               <Button
                 variant="ghost"
