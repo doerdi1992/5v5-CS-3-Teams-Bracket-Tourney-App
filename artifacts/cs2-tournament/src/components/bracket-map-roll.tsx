@@ -1,13 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import {
-  useGetBracket,
+  useGetFullState,
+  getGetFullStateQueryKey,
   useSetMatchWinner,
   useResetBracket,
   useRollMap,
   useBroadcastServer,
-  useGetMapImages,
-  getGetBracketQueryKey,
-  getGetMapImagesQueryKey,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +20,7 @@ import { RefreshCw, Send, Trophy, Eye, EyeOff, Dices, Zap, Save } from "lucide-r
 // ─── Animation constants ─────────────────────────────────────────────────────
 const WINNER_IDX = 68;        // winner tile index in the strip
 const ITEM_WIDTH = 196;       // px per tile (width + gap)
-const DURATION = 11500;       // ms total spin duration
+const DURATION = 7500;        // ms total spin duration
 const VOLUME = 0.10;          // locked audio volume (10%)
 
 // ─── Audio synthesiser ────────────────────────────────────────────────────────
@@ -104,9 +102,10 @@ interface ExtendedBracket {
 export default function BracketMapRoll() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { data: rawBracket } = useGetBracket({ query: { queryKey: getGetBracketQueryKey() } });
-  const bracket = rawBracket as ExtendedBracket | undefined;
-  const { data: mapImages = {} } = useGetMapImages({ query: { queryKey: getGetMapImagesQueryKey() } });
+  const { data: fullState } = useGetFullState({ query: { queryKey: getGetFullStateQueryKey() } });
+  const bracket = fullState?.bracket as ExtendedBracket | undefined;
+  const mapImages = fullState?.mapImages || {};
+  const teams = fullState?.teams || { A: [], B: [], C: [] };
 
   // ── localStorage-backed state ──────────────────────────────────────────────
   const [mapPool, setMapPool] = useState(() =>
@@ -152,8 +151,8 @@ export default function BracketMapRoll() {
     const tick = () => {
       const elapsed = performance.now() - startTime;
       const t = Math.min(elapsed / DURATION, 1);
-      // Quintic ease-out: explosive start, agonising crawl to a stop
-      const eased = 1 - Math.pow(1 - t, 5);
+      // Quartic ease-out: slightly faster deceleration tail
+      const eased = 1 - Math.pow(1 - t, 4);
       const scrollPos = eased * totalScroll;
 
       if (stripRef.current) {
@@ -182,7 +181,7 @@ export default function BracketMapRoll() {
         setIsSpinning(false);
         setRevealed(true);
         playReveal(ctx, VOLUME);
-        queryClient.invalidateQueries({ queryKey: getGetBracketQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetFullStateQueryKey() });
 
         // Auto-broadcast server if enabled and connection string is set
         const lsAutoSend = localStorage.getItem("cs2_auto_send") === "1";
@@ -207,7 +206,7 @@ export default function BracketMapRoll() {
   const handleSetWinner = (winner: "A" | "B" | "C") => {
     setWinnerMut.mutate(
       { data: { winner } },
-      { onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetBracketQueryKey() }) }
+      { onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetFullStateQueryKey() }) }
     );
   };
 
@@ -215,7 +214,7 @@ export default function BracketMapRoll() {
     resetBracketMut.mutate(undefined, {
       onSuccess: () => {
         toast({ title: "Bracket zurückgesetzt", description: "Turnier-Status gelöscht." });
-        queryClient.invalidateQueries({ queryKey: getGetBracketQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetFullStateQueryKey() });
       },
     });
   };
@@ -257,7 +256,7 @@ export default function BracketMapRoll() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ bestOf }),
     }).then(() => {
-      queryClient.invalidateQueries({ queryKey: getGetBracketQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetFullStateQueryKey() });
       toast({ title: `Finale: Best of ${bestOf}`, description: bestOf === 3 ? "Finale ist jetzt BO3." : "Finale ist jetzt BO1." });
     });
   };
@@ -292,6 +291,12 @@ export default function BracketMapRoll() {
     if (team === "B") return "text-cyan-400";
     if (team === "C") return "text-purple-400";
     return "text-primary";
+  };
+
+  const getTeamPlayersString = (teamLetter: string | null): string => {
+    if (!teamLetter || !teams || !teams[teamLetter as keyof typeof teams]) return "";
+    const list = teams[teamLetter as keyof typeof teams] || [];
+    return list.map((p: any) => p.name).join(", ");
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -349,9 +354,19 @@ export default function BracketMapRoll() {
                       </div>
                     </div>
                     <div className="flex items-center justify-between text-xl font-black font-mono">
-                      <span className={winner === leftTeam && winner ? teamColorClass(leftTeam) : ""}>{left}</span>
+                      <div className="flex flex-col items-start w-2/5">
+                        <span className={winner === leftTeam && winner ? teamColorClass(leftTeam) : ""}>{left}</span>
+                        <span className="text-[10px] text-muted-foreground/60 font-normal mt-0.5 truncate w-full" title={getTeamPlayersString(leftTeam)}>
+                          {getTeamPlayersString(leftTeam) || "Keine Spieler"}
+                        </span>
+                      </div>
                       <span className="text-muted-foreground text-sm">VS</span>
-                      <span className={winner === rightTeam && winner ? teamColorClass(rightTeam) : ""}>{right}</span>
+                      <div className="flex flex-col items-end w-2/5 text-right">
+                        <span className={winner === rightTeam && winner ? teamColorClass(rightTeam) : ""}>{right}</span>
+                        <span className="text-[10px] text-muted-foreground/60 font-normal mt-0.5 truncate w-full" title={getTeamPlayersString(rightTeam)}>
+                          {getTeamPlayersString(rightTeam) || "Keine Spieler"}
+                        </span>
+                      </div>
                     </div>
 
                     {/* BO3 score display */}
