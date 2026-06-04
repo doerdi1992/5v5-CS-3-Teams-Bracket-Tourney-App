@@ -14,8 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Copy, Server, Play, ExternalLink } from "lucide-react";
+import { Copy, Server, Play, ExternalLink, Tv } from "lucide-react";
 
 const getSteamUrl = (connStr: string | null): string => {
   if (!connStr) return "";
@@ -43,10 +42,8 @@ export default function ViewerPage() {
   const [clientId, setClientId] = useState<string>("");
   const [playerName, setPlayerName] = useState<string>("");
   const [isRegistered, setIsRegistered] = useState(false);
-  const [nameInput, setNameInput] = useState("");
-  const [steamIdInput, setSteamIdInput] = useState("");
+  const [registerInput, setRegisterInput] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
-  const [showFallback, setShowFallback] = useState(false);
   const [connectionString, setConnectionString] = useState<string | null>(() =>
     localStorage.getItem("cs2_viewer_connection")
   );
@@ -68,10 +65,11 @@ export default function ViewerPage() {
     const storedName = localStorage.getItem("cs2_player_name");
     const storedSteamId = localStorage.getItem("cs2_steam_id");
     if (storedSteamId) {
-      setSteamIdInput(storedSteamId);
+      setRegisterInput(storedSteamId);
+    } else if (storedName) {
+      setRegisterInput(storedName);
     }
     if (storedName) {
-      setNameInput(storedName);
       setPlayerName(storedName);
       setIsRegistered(true);
       socket.emit("register", { clientId: storedClientId });
@@ -93,48 +91,70 @@ export default function ViewerPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nameInput.trim()) {
+    const query = registerInput.trim();
+    if (!query) {
       toast({
         variant: "destructive",
-        title: "Kampfname erforderlich",
-        description: "Bitte gib einen Kampfnamen ein, um dich anzumelden."
+        title: "Eingabe erforderlich",
+        description: "Bitte gib dein Steam-Profil, deine SteamID oder deinen Wunschnamen ein.",
       });
       return;
     }
 
-    let resolvedSteamId = steamIdInput.trim();
+    setIsRegistering(true);
+    let resolvedSteamId = "";
+    let finalName = "";
 
-    if (resolvedSteamId) {
-      if (!/^\d{17}$/.test(resolvedSteamId)) {
-        setIsRegistering(true);
-        try {
-          const res = await fetch(`/api/players/resolve-steam?input=${encodeURIComponent(resolvedSteamId)}`);
-          const data = await res.json() as { steamId?: string; error?: string };
-          if (res.ok && data.steamId) {
+    const mightBeSteam = /^(https?:\/\/)?(www\.)?steamcommunity\.com/i.test(query) || 
+                         /^\d{17}$/.test(query) || 
+                         /^[a-zA-Z0-9_-]{3,32}$/.test(query);
+
+    if (mightBeSteam) {
+      try {
+        const res = await fetch(`/api/players/resolve-steam?input=${encodeURIComponent(query)}`);
+        if (res.ok) {
+          const data = await res.json() as { steamId?: string; steamName?: string };
+          if (data.steamId) {
             resolvedSteamId = data.steamId;
-            setSteamIdInput(data.steamId);
-            localStorage.setItem("cs2_steam_id", data.steamId);
-            toast({ title: "Steam-ID aufgelöst", description: `Profil verifiziert: ${data.steamId}` });
-          } else {
-            throw new Error(data.error || "Steam-ID konnte nicht ermittelt werden.");
+            finalName = data.steamName || query;
+            toast({
+              title: "Steam-Profil geladen",
+              description: `Profil verifiziert: ${finalName}`,
+            });
           }
-        } catch (err: any) {
-          toast({ variant: "destructive", title: "Fehler beim Auflösen der Steam-ID", description: err.message });
-          setIsRegistering(false);
-          return;
         }
+      } catch (err) {
+        console.warn("Steam resolution failed, using input as custom name", err);
       }
     }
 
-    setIsRegistering(true);
+    if (!resolvedSteamId) {
+      if (query.includes("steamcommunity.com") || query.includes("http")) {
+        toast({
+          variant: "destructive",
+          title: "Ungültiges Profil",
+          description: "Dein Steam-Profil konnte nicht geladen werden. Bitte korrigiere den Link oder gib einen Namen ein.",
+        });
+        setIsRegistering(false);
+        return;
+      }
+
+      if (/^\d{17}$/.test(query)) {
+        resolvedSteamId = query;
+        finalName = `Spieler_${query.slice(-4)}`;
+      } else {
+        finalName = query;
+      }
+    }
+
     fetch("/api/players/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: nameInput.trim(),
+        name: finalName,
         clientId,
-        steamId: resolvedSteamId || undefined
-      })
+        steamId: resolvedSteamId || undefined,
+      }),
     })
       .then(async (res) => {
         if (!res.ok) {
@@ -144,9 +164,13 @@ export default function ViewerPage() {
         return res.json();
       })
       .then(() => {
-        localStorage.setItem("cs2_player_name", nameInput.trim());
-        localStorage.setItem("cs2_steam_id", resolvedSteamId);
-        setPlayerName(nameInput.trim());
+        localStorage.setItem("cs2_player_name", finalName);
+        if (resolvedSteamId) {
+          localStorage.setItem("cs2_steam_id", resolvedSteamId);
+        } else {
+          localStorage.removeItem("cs2_steam_id");
+        }
+        setPlayerName(finalName);
         setIsRegistered(true);
         socket.emit("register", { clientId });
         toast({ title: "Erfolgreich angemeldet", description: "Warte auf Admin-Freigabe." });
@@ -189,94 +213,79 @@ export default function ViewerPage() {
   }, [isMyMatchActive, isRegistered, bracket, players]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-6 flex flex-col items-center">
-      <div className="max-w-4xl w-full space-y-8">
-        <header className="text-center mb-12">
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tighter text-primary font-mono drop-shadow-sm">Janaxf 5v5 CS2 Tunier</h1>
-          <p className="text-muted-foreground mt-2 tracking-widest uppercase text-sm">Spieler-Portal</p>
+    <div className="min-h-screen bg-background text-foreground p-6 flex flex-col items-center relative overflow-x-hidden">
+      {/* Decorative ambient background glows */}
+      <div className="absolute top-0 left-1/4 w-[500px] h-[250px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-0 right-1/4 w-[500px] h-[250px] bg-secondary/5 rounded-full blur-[120px] pointer-events-none" />
+
+      <div className="max-w-4xl w-full space-y-8 relative z-10">
+        <header className="relative w-full rounded-2xl glass p-6 md:p-8 mb-6 border border-primary/20 overflow-hidden shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
+          {/* Subtle top accent line */}
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+          
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+            {/* Title Block */}
+            <div className="text-center md:text-left space-y-2">
+              <div className="flex items-center justify-center md:justify-start gap-2.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_#22c55e]" />
+                <span className="text-[10px] font-mono tracking-widest text-green-500 uppercase font-black">Portal Aktiv</span>
+              </div>
+              <h1 className="text-3xl md:text-5xl font-black tracking-tighter bg-gradient-to-r from-primary via-orange-400 to-primary bg-clip-text text-transparent uppercase drop-shadow-[0_0_15px_rgba(249,115,22,0.2)] font-mono">
+                Janaxf 5v5 CS2 Turnier
+              </h1>
+              <p className="text-muted-foreground text-[10px] md:text-xs font-mono uppercase tracking-[0.2em] pl-0.5">
+                Spieler- & Match-Dashboard
+              </p>
+            </div>
+            
+            {/* Decorative tactical brackets/badge */}
+            <div className="flex items-center gap-3 bg-black/40 border border-white/5 px-4 py-2.5 rounded-xl backdrop-blur-sm">
+              <Tv className="w-4 h-4 text-primary animate-pulse" />
+              <div className="text-left font-mono">
+                <div className="text-[9px] uppercase tracking-wider text-muted-foreground leading-tight">Plattform</div>
+                <div className="text-xs font-bold text-secondary tracking-widest">CS2 MATCH ENGINE</div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Decorative grid pattern in background */}
+          <div className="absolute right-4 bottom-0 opacity-[0.03] pointer-events-none select-none text-[80px] font-mono font-black tracking-tighter leading-none select-none">
+            CS2
+          </div>
         </header>
 
         {!isRegistered ? (
-          <Card className="max-w-md mx-auto border-primary/20 bg-card/50 backdrop-blur">
+          <Card className="max-w-md mx-auto border-primary/20 bg-card/50 backdrop-blur shadow-[0_0_30px_rgba(249,115,22,0.1)]">
             <CardHeader>
-              <CardTitle className="font-mono text-xl uppercase text-primary">Warteschlange beitreten</CardTitle>
-              <CardDescription>Kampfname eingeben, um am Turnier teilzunehmen.</CardDescription>
+              <CardTitle className="font-mono text-xl uppercase text-primary tracking-wider">Warteschlange beitreten</CardTitle>
+              <CardDescription className="text-xs">Gib dein Steam-Profil (Link/Name), deine SteamID oder einen Wunschnamen ein.</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleRegister} className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Kampfname (für Overlay)</label>
-                  <Input value={nameInput} onChange={(e) => setNameInput(e.target.value)} placeholder="Kampfname eingeben..." className="font-mono bg-background/50" />
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Steam-Profil, SteamID oder Name</label>
+                  <Input
+                    value={registerInput}
+                    onChange={(e) => setRegisterInput(e.target.value)}
+                    placeholder="Steam-Link, SteamID oder Kampfname..."
+                    className="font-mono bg-background/50"
+                  />
+                  <div className="flex flex-col gap-1 mt-2.5 px-0.5">
+                    <p className="text-[9px] font-mono text-muted-foreground leading-relaxed">
+                      💡 <strong>Tipp:</strong> Mit deinem Steam-Profil wird dein Kampfname automatisch ausgefüllt.
+                    </p>
+                    <a
+                      href="https://steamcommunity.com/my/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[9px] font-mono text-primary hover:underline flex items-center gap-0.5 transition-colors self-start mt-1"
+                    >
+                      <ExternalLink className="w-2.5 h-2.5" />
+                      Mein Steam-Profil für Link kopieren
+                    </a>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  {!showFallback ? (
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Steam-Profil (Link oder Name)</label>
-                      <Input
-                        value={steamIdInput}
-                        onChange={(e) => setSteamIdInput(e.target.value)}
-                        placeholder="z.B. https://steamcommunity.com/id/name oder dein Custom-Name"
-                        className="font-mono bg-background/50"
-                      />
-                      <div className="flex justify-between items-center mt-1.5 px-0.5">
-                        <a
-                          href="https://steamcommunity.com/my/"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[9px] font-mono text-primary hover:underline flex items-center gap-0.5 transition-colors"
-                        >
-                          <ExternalLink className="w-2.5 h-2.5" />
-                          Mein Steam-Profil öffnen (zum Kopieren)
-                        </a>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowFallback(true);
-                            setSteamIdInput("");
-                          }}
-                          className="text-[9px] font-mono text-muted-foreground hover:text-primary transition-colors underline"
-                        >
-                          Manuelle ID
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      <div className="flex justify-between items-center">
-                        <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Manuelle Steam64 ID (17 Ziffern)</label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowFallback(false);
-                            setSteamIdInput("");
-                          }}
-                          className="text-[9px] font-mono text-muted-foreground hover:text-primary transition-colors underline"
-                        >
-                          Zurück zum Profil-Link
-                        </button>
-                      </div>
-                      <Input
-                        value={steamIdInput}
-                        onChange={(e) => setSteamIdInput(e.target.value)}
-                        placeholder="z.B. 76561198000000000"
-                        className="font-mono bg-background/50"
-                      />
-                      <div className="flex justify-between items-center mt-1">
-                        <span className="text-[9px] font-mono text-muted-foreground">Die 17-stellige ID auslesen:</span>
-                        <a
-                          href="https://steamid.xyz/"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[9px] font-mono text-primary hover:underline flex items-center gap-0.5 transition-colors"
-                        >
-                          <ExternalLink className="w-2.5 h-2.5" />
-                          SteamID.xyz öffnen
-                        </a>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <Button type="submit" className="w-full font-mono uppercase tracking-widest" disabled={isRegistering}>
+                <Button type="submit" className="w-full font-mono uppercase tracking-widest mt-2" disabled={isRegistering}>
                   {isRegistering ? "Verbinde..." : "Anmelden"}
                 </Button>
               </form>
@@ -295,7 +304,7 @@ export default function ViewerPage() {
                       <Badge variant={me?.status === "accepted" ? "default" : "secondary"} className="uppercase">
                         {me?.status === "accepted" ? "Akzeptiert" : me?.status === "rejected" ? "Abgelehnt" : "Ausstehend"}
                       </Badge>
-                      {me?.flagged && <Badge variant="destructive" className="uppercase">Profi</Badge>}
+                      {me?.flagged && <Badge variant="destructive" className="uppercase">GOAT</Badge>}
                       <Button
                         variant="link"
                         size="sm"

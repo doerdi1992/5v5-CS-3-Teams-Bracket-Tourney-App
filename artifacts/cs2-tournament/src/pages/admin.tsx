@@ -92,37 +92,62 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <header className="mb-8 border-b border-border pb-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tighter text-primary font-mono">ADMIN_KONSOLE</h1>
-            <p className="text-muted-foreground font-mono uppercase text-sm mt-1">Janaxf 5v5 CS2 Tunier-Verwaltung</p>
-          </div>
-          <div className="flex flex-col items-end gap-1.5">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="font-mono text-xs text-muted-foreground hover:text-destructive h-7 px-2"
-              onClick={() => { sessionStorage.removeItem(AUTH_KEY); setAuthed(false); }}
-            >
-              Abmelden
-            </Button>
+    <div className="min-h-screen bg-background text-foreground p-6 relative overflow-x-hidden">
+      {/* Decorative ambient background glows */}
+      <div className="absolute top-0 left-1/4 w-[500px] h-[250px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-0 right-1/4 w-[500px] h-[250px] bg-secondary/5 rounded-full blur-[120px] pointer-events-none" />
 
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 h-7 px-2 border-border/60">
-                  <Settings className="w-3.5 h-3.5" />
-                  Settings
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="sm:max-w-2xl w-[600px] overflow-y-auto bg-background border-l border-border p-6">
-                <SheetHeader className="mb-6">
-                  <SheetTitle className="font-mono text-xl uppercase text-primary">Einstellungen</SheetTitle>
-                </SheetHeader>
-                <MapSetup />
-              </SheetContent>
-            </Sheet>
+      <div className="max-w-6xl mx-auto space-y-6 relative z-10">
+        <header className="relative w-full rounded-2xl glass p-6 mb-8 border border-primary/20 overflow-hidden shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
+          {/* Subtle top accent line */}
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-6 relative z-10">
+            {/* Title block */}
+            <div className="text-center sm:text-left space-y-1">
+              <div className="flex items-center justify-center sm:justify-start gap-2">
+                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_#ef4444]" />
+                <span className="text-[10px] font-mono tracking-widest text-red-500 uppercase font-black">Admin Mode</span>
+              </div>
+              <h1 className="text-2xl md:text-3xl font-black tracking-wider text-primary font-mono uppercase bg-gradient-to-r from-primary via-orange-400 to-primary bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(249,115,22,0.25)]">
+                ADMIN_KONSOLE
+              </h1>
+              <p className="text-muted-foreground font-mono uppercase text-[10px] tracking-[0.15em]">
+                Janaxf 5v5 CS2 Turnier-Verwaltung
+              </p>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex items-center gap-3">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 h-9 px-4 border-border/60 hover:border-primary/50 hover:bg-primary/5 transition-all">
+                    <Settings className="w-4 h-4 text-muted-foreground" />
+                    Einstellungen
+                  </Button>
+                </SheetTrigger>
+                <SheetContent className="sm:max-w-2xl w-[600px] overflow-y-auto bg-background border-l border-border p-6">
+                  <SheetHeader className="mb-6">
+                    <SheetTitle className="font-mono text-xl uppercase text-primary">Einstellungen</SheetTitle>
+                  </SheetHeader>
+                  <MapSetup />
+                </SheetContent>
+              </Sheet>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="font-mono text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-9 px-4 transition-all"
+                onClick={() => { sessionStorage.removeItem(AUTH_KEY); setAuthed(false); }}
+              >
+                Abmelden
+              </Button>
+            </div>
+          </div>
+          
+          {/* Decorative tactical watermark background */}
+          <div className="absolute right-4 bottom-0 opacity-[0.03] pointer-events-none select-none text-[80px] font-mono font-black tracking-widest leading-none">
+            HQ
           </div>
         </header>
 

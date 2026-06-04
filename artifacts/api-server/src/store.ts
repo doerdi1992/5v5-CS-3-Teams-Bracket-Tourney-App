@@ -120,8 +120,13 @@ class Store {
     const sf = shuffle(flagged);
     const su = shuffle(unflagged);
     const tA: Player[] = [], tB: Player[] = [], tC: Player[] = [];
+    const slots: TeamName[] = [];
+    for (let i = 0; i < sf.length; i += 3) {
+      const chunk = shuffle(["A", "B", "C"] as TeamName[]);
+      slots.push(...chunk);
+    }
     sf.forEach((p, i) => {
-      const t = (["A", "B", "C"] as TeamName[])[i % 3];
+      const t = slots[i];
       p.team = t;
       if (t === "A") tA.push(p); else if (t === "B") tB.push(p); else tC.push(p);
     });

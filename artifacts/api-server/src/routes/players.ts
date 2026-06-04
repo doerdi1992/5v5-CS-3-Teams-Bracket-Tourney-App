@@ -16,6 +16,21 @@ router.get("/players", (_req, res) => {
 });
 
 router.post("/players", (req, res) => {
+  // 1. Support single player manual addition with optional steamId
+  if (req.body && typeof req.body.name === "string") {
+    const name = req.body.name.trim();
+    if (!name) {
+      res.status(400).json({ error: "Name erforderlich" });
+      return;
+    }
+    const steamId = typeof req.body.steamId === "string" ? req.body.steamId.trim() : undefined;
+    const player = store.addPlayer(name, "accepted", steamId || undefined);
+    broadcastStateUpdate();
+    res.status(201).json(player);
+    return;
+  }
+
+  // 2. Fallback to bulk name import
   const parsed = AddPlayersBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid body" });
@@ -74,36 +89,55 @@ router.get("/players/resolve-steam", async (req, res) => {
 
   const query = input.trim();
 
-  // 1. Check if it's already a direct 17-digit Steam64 ID
-  if (/^\d{17}$/.test(query)) {
-    res.json({ steamId: query });
-    return;
-  }
+  try {
+    let steamId: string | null = null;
+    let steamName: string | undefined = undefined;
 
-  // 2. Check if it contains profiles/<steamid64>
-  const profileMatch = query.match(/steamcommunity\.com\/profiles\/(\d{17})/i);
-  if (profileMatch && profileMatch[1]) {
-    res.json({ steamId: profileMatch[1] });
-    return;
-  }
+    // 1. Check if it's already a direct 17-digit Steam64 ID
+    if (/^\d{17}$/.test(query)) {
+      steamId = query;
+    }
 
-  // 3. Resolve vanity URL
-  let vanityName = query;
-  const idMatch = query.match(/steamcommunity\.com\/id\/([a-zA-Z0-9_-]+)/i);
-  if (idMatch && idMatch[1]) {
-    vanityName = idMatch[1];
-  } else {
-    // If it's a URL but didn't match the patterns, return error
-    if (query.includes("steamcommunity.com")) {
-      res.status(400).json({ error: "Ungültiges Steam-Profil-Format." });
+    // 2. Check if it contains profiles/<steamid64>
+    const profileMatch = query.match(/steamcommunity\.com\/profiles\/(\d{17})/i);
+    if (profileMatch && profileMatch[1]) {
+      steamId = profileMatch[1];
+    }
+
+    if (steamId) {
+      // Fetch profile XML using profiles/ to verify and fetch nickname
+      const steamUrl = `https://steamcommunity.com/profiles/${steamId}/?xml=1`;
+      const response = await fetch(steamUrl);
+      if (response.ok) {
+        const text = await response.text();
+        const id64Match = text.match(/<steamID64>(\d{17})<\/steamID64>/);
+        if (id64Match && id64Match[1]) {
+          const steamIDMatch = text.match(/<steamID><!\[CDATA\[(.*?)\]\]><\/steamID>/) || text.match(/<steamID>(.*?)<\/steamID>/);
+          steamName = steamIDMatch ? steamIDMatch[1].trim() : undefined;
+          res.json({ steamId: id64Match[1], steamName });
+          return;
+        }
+      }
+      res.json({ steamId });
       return;
     }
-  }
 
-  // Clean vanityName of any trailing slashes
-  vanityName = vanityName.replace(/\/+$/, "");
+    // 3. Resolve vanity URL
+    let vanityName = query;
+    const idMatch = query.match(/steamcommunity\.com\/id\/([a-zA-Z0-9_-]+)/i);
+    if (idMatch && idMatch[1]) {
+      vanityName = idMatch[1];
+    } else {
+      // If it's a URL but didn't match the patterns, return error
+      if (query.includes("steamcommunity.com")) {
+        res.status(400).json({ error: "Ungültiges Steam-Profil-Format." });
+        return;
+      }
+    }
 
-  try {
+    // Clean vanityName of any trailing slashes
+    vanityName = vanityName.replace(/\/+$/, "");
+
     const steamUrl = `https://steamcommunity.com/id/${vanityName}/?xml=1`;
     const response = await fetch(steamUrl);
     if (!response.ok) {
@@ -112,7 +146,9 @@ router.get("/players/resolve-steam", async (req, res) => {
     const text = await response.text();
     const id64Match = text.match(/<steamID64>(\d{17})<\/steamID64>/);
     if (id64Match && id64Match[1]) {
-      res.json({ steamId: id64Match[1] });
+      const steamIDMatch = text.match(/<steamID><!\[CDATA\[(.*?)\]\]><\/steamID>/) || text.match(/<steamID>(.*?)<\/steamID>/);
+      steamName = steamIDMatch ? steamIDMatch[1].trim() : undefined;
+      res.json({ steamId: id64Match[1], steamName });
       return;
     }
     
@@ -124,7 +160,9 @@ router.get("/players/resolve-steam", async (req, res) => {
         const altText = await altResponse.text();
         const altIdMatch = altText.match(/<steamID64>(\d{17})<\/steamID64>/);
         if (altIdMatch && altIdMatch[1]) {
-          res.json({ steamId: altIdMatch[1] });
+          const steamIDMatch = altText.match(/<steamID><!\[CDATA\[(.*?)\]\]><\/steamID>/) || altText.match(/<steamID>(.*?)<\/steamID>/);
+          steamName = steamIDMatch ? steamIDMatch[1].trim() : undefined;
+          res.json({ steamId: altIdMatch[1], steamName });
           return;
         }
       }

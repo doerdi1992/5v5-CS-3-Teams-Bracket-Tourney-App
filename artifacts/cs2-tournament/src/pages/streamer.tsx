@@ -1,5 +1,5 @@
 import { useGetFullState, getGetFullStateQueryKey } from "@workspace/api-client-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { socket } from "@/lib/socket";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -207,6 +207,14 @@ function MatchCard({
 export default function StreamerPage() {
   const queryClient = useQueryClient();
   const { data: fullState, isLoading } = useGetFullState({ query: { queryKey: getGetFullStateQueryKey() } });
+  const [showGuide, setShowGuide] = useState(true);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("live") === "true") {
+      setShowGuide(false);
+    }
+  }, []);
 
   useEffect(() => {
     const refresh = () => {
@@ -262,9 +270,11 @@ export default function StreamerPage() {
   const teamBPlayers = teams[currentTeams[1] as keyof typeof teams] || [];
 
   return (
-    <div className="h-screen w-screen bg-slate-950 text-foreground flex flex-col relative overflow-hidden font-sans select-none">
+    <div className={`h-screen w-screen ${showGuide ? "bg-slate-950" : "bg-transparent"} text-foreground flex flex-col relative overflow-hidden font-sans select-none`}>
       {/* Moving background gradient mesh */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-orange-500/10 via-slate-950 to-purple-500/10 opacity-70 pointer-events-none animate-gradient" />
+      {showGuide && (
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-orange-500/10 via-slate-950 to-purple-500/10 opacity-70 pointer-events-none animate-gradient" />
+      )}
 
       {/* Header */}
       <header className="flex items-center justify-between px-8 py-3.5 border-b border-white/5 relative z-20 glass-light">
@@ -302,167 +312,177 @@ export default function StreamerPage() {
           </div>
         )}
 
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_#22c55e]" />
-          <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Live Feed</span>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setShowGuide(!showGuide)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-[9px] font-mono uppercase tracking-wider text-foreground/80 hover:text-white transition-all cursor-pointer animate-pulse"
+          >
+            <Tv className="w-3.5 h-3.5" />
+            {showGuide ? "Guide ausblenden" : "Guide einblenden"}
+          </button>
+
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_#22c55e]" />
+            <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Live Feed</span>
+          </div>
         </div>
       </header>
 
       {/* Main Grid View */}
       <div className="flex-1 grid grid-cols-12 gap-8 p-8 overflow-hidden relative z-10">
-        {/* Left Side - 5 columns: Bracket info */}
-        <div className="col-span-5 flex flex-col justify-center gap-4 h-full">
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground font-black mb-1 block">
-            Turnier Verlauf
-          </span>
-
-          <MatchCard
-            label="Partie 1"
-            matchNum={1}
-            currentMatch={currentMatch}
-            left="TEAM A"
-            right="TEAM B"
-            winner={bracket.match1Winner}
-            leftTeam="A"
-            rightTeam="B"
-          />
-
-          <MatchCard
-            label="Partie 2"
-            matchNum={2}
-            currentMatch={currentMatch}
-            left={bracket.match2 ? `TEAM ${bracket.match2.split(" ")[0]}` : "TBD"}
-            right={bracket.match2 ? `TEAM ${bracket.match2.split(" ")[2]}` : "TBD"}
-            winner={bracket.match2Winner}
-            leftTeam={bracket.match2?.split(" ")[0] ?? null}
-            rightTeam={bracket.match2?.split(" ")[2] ?? null}
-          />
-
-          <MatchCard
-            label="Finale"
-            matchNum={3}
-            currentMatch={currentMatch}
-            left={bracket.match3 ? `TEAM ${bracket.match3.split(" ")[0]}` : "TBD"}
-            right={bracket.match3 ? `TEAM ${bracket.match3.split(" ")[2]}` : "TBD"}
-            winner={bracket.match3Winner}
-            leftTeam={bracket.match3?.split(" ")[0] ?? null}
-            rightTeam={bracket.match3?.split(" ")[2] ?? null}
-            finaleBestOf={finaleBestOf}
-            finaleScore={finaleScore}
-          />
+        {/* Left Side - 7 columns: Streamer Camera Placeholder Zone */}
+        <div className="col-span-7 flex items-center justify-center p-4 h-full">
+          {showGuide ? (
+            <div className="w-full h-full border border-dashed border-white/10 rounded-3xl flex flex-col items-center justify-center relative bg-black/20 backdrop-blur-[1px]">
+              {/* High-tech corner bracket accents */}
+              <div className="absolute top-4 left-4 w-4 h-4 border-t-2 border-l-2 border-white/20" />
+              <div className="absolute top-4 right-4 w-4 h-4 border-t-2 border-r-2 border-white/20" />
+              <div className="absolute bottom-4 left-4 w-4 h-4 border-b-2 border-l-2 border-white/20" />
+              <div className="absolute bottom-4 right-4 w-4 h-4 border-b-2 border-r-2 border-white/20" />
+              
+              <Tv className="w-8 h-8 text-white/10 animate-pulse mb-2" />
+              <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-white/25">Streamer Kamera-Bereich (OBS Overlay)</span>
+              <span className="font-mono text-[8px] text-white/15 mt-2 max-w-xs text-center leading-relaxed">
+                Füge "?live=true" zur URL hinzu oder klicke oben auf "Guide ausblenden", um die Hilfslinien zu deaktivieren.
+              </span>
+            </div>
+          ) : (
+            <div className="w-full h-full" />
+          )}
         </div>
 
-        {/* Right Side - 7 columns: Map Hero & Active rosters */}
-        <div className="col-span-7 flex flex-col justify-between h-full gap-6">
-          {/* Map Section */}
-          <div className="flex-1 flex flex-col justify-center">
+        {/* Right Side - 5 columns: Map, Bracket & Rosters */}
+        <div className="col-span-5 flex flex-col justify-between h-full gap-4 overflow-y-auto pr-2">
+          {/* 1. Map Section */}
+          <div className="w-full">
             {rolledMap ? (
               <motion.div
                 key={rolledMap}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5 }}
-                className="w-full flex flex-col gap-4"
+                className="w-full relative rounded-2xl overflow-hidden border border-white/10 aspect-video shadow-[0_0_30px_rgba(0,0,0,0.5)] bg-slate-950"
               >
-                {/* Map Hero Card */}
-                <div className="w-full aspect-video max-h-[220px] rounded-2xl overflow-hidden border border-white/10 relative bg-slate-900/60 shadow-[0_0_30px_rgba(0,0,0,0.4)]">
-                  {mapImageUrl ? (
-                    <motion.img
-                      initial={{ scale: 1.12 }}
-                      animate={{ scale: 1 }}
-                      transition={{ duration: 15, ease: "linear" }}
-                      src={mapImageUrl}
-                      alt={rolledMap}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-muted/20">
-                      <span className="font-mono text-muted-foreground text-xs uppercase tracking-widest">Kein Bild</span>
-                    </div>
-                  )}
+                {mapImageUrl ? (
+                  <motion.img
+                    initial={{ scale: 1.12 }}
+                    animate={{ scale: 1 }}
+                    transition={{ duration: 15, ease: "linear" }}
+                    src={mapImageUrl}
+                    alt={rolledMap}
+                    className="w-full h-full object-cover opacity-60"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-slate-900/50" />
+                )}
 
-                  {/* Gradient bottom overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
+                {/* Dark gradient mask */}
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
 
-                  {/* Small badge overlay */}
-                  <div className="absolute top-3.5 left-3.5 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-[9px] font-mono tracking-widest text-primary uppercase">
-                    <MapPin className="w-3 h-3" />
-                    Battleground
-                  </div>
+                {/* Centered Map Name Overlay */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center z-10">
+                  <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary/80 font-black mb-1">Gewählte Map</span>
+                  <h2 className="font-mono font-black text-4xl md:text-5xl uppercase tracking-widest text-white drop-shadow-[0_0_20px_rgba(249,115,22,0.8)]">
+                    {rolledMap}
+                  </h2>
                 </div>
 
-                {/* Map Name text */}
-                <div className="text-center">
-                  <h2 className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground font-black">Gewählte Map</h2>
-                  <p className="font-mono font-black text-5xl uppercase tracking-widest text-primary drop-shadow-[0_0_24px_rgba(249,115,22,0.6)] mt-0.5">
-                    {rolledMap}
-                  </p>
+                {/* Top left tactical tag */}
+                <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10 text-[8px] font-mono tracking-widest text-primary uppercase">
+                  <MapPin className="w-2.5 h-2.5" />
+                  MAP
                 </div>
               </motion.div>
             ) : (
-              <div className="w-full aspect-video max-h-[220px] rounded-2xl border border-dashed border-white/10 flex flex-col items-center justify-center bg-slate-900/10 text-center p-8 gap-3">
-                <div className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center bg-slate-900/50 animate-pulse">
-                  <Tv className="w-4 h-4 text-muted-foreground/60" />
-                </div>
+              <div className="w-full aspect-video rounded-2xl border border-dashed border-white/10 flex flex-col items-center justify-center bg-slate-900/20 text-center p-4 gap-2">
+                <Tv className="w-4 h-4 text-muted-foreground/40 animate-pulse" />
                 <div>
-                  <p className="font-mono text-muted-foreground text-xs uppercase tracking-wider">Karten-Auswahl ausstehend</p>
-                  <p className="font-mono text-[9px] text-muted-foreground/40 mt-1 uppercase tracking-widest">Warte auf Map-Roll des Streamers...</p>
+                  <p className="font-mono text-muted-foreground text-[10px] uppercase tracking-wider">Karten-Auswahl ausstehend</p>
+                  <p className="font-mono text-[8px] text-muted-foreground/30 mt-0.5 uppercase tracking-widest">Warte auf Map-Roll...</p>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Roster Section */}
+          {/* 2. Tournament Bracket (Turnier Verlauf) */}
+          <div className="flex-1 flex flex-col gap-3 justify-center">
+            <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground font-black pl-1 mb-1 block">
+              Turnier Verlauf
+            </span>
+
+            <MatchCard
+              label="Partie 1"
+              matchNum={1}
+              currentMatch={currentMatch}
+              left="TEAM A"
+              right="TEAM B"
+              winner={bracket.match1Winner}
+              leftTeam="A"
+              rightTeam="B"
+            />
+
+            <MatchCard
+              label="Partie 2"
+              matchNum={2}
+              currentMatch={currentMatch}
+              left={bracket.match2 ? `TEAM ${bracket.match2.split(" ")[0]}` : "TBD"}
+              right={bracket.match2 ? `TEAM ${bracket.match2.split(" ")[2]}` : "TBD"}
+              winner={bracket.match2Winner}
+              leftTeam={bracket.match2?.split(" ")[0] ?? null}
+              rightTeam={bracket.match2?.split(" ")[2] ?? null}
+            />
+
+            <MatchCard
+              label="Finale"
+              matchNum={3}
+              currentMatch={currentMatch}
+              left={bracket.match3 ? `TEAM ${bracket.match3.split(" ")[0]}` : "TBD"}
+              right={bracket.match3 ? `TEAM ${bracket.match3.split(" ")[2]}` : "TBD"}
+              winner={bracket.match3Winner}
+              leftTeam={bracket.match3?.split(" ")[0] ?? null}
+              rightTeam={bracket.match3?.split(" ")[2] ?? null}
+              finaleBestOf={finaleBestOf}
+              finaleScore={finaleScore}
+            />
+          </div>
+
+          {/* 3. Rosters (Active) */}
           {currentMatch <= 3 && currentTeams.length >= 2 && (
             <motion.div
-              initial={{ opacity: 0, y: 15 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="flex flex-col gap-2.5 pb-2"
+              className="flex flex-col gap-2 pt-2 border-t border-white/5"
             >
-              <div className="flex items-center gap-2 border-b border-white/5 pb-2">
-                <Users className="w-4 h-4 text-muted-foreground" />
-                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground font-black">
-                  Aktive Rosters
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 {/* Team Left */}
-                <div className={`p-4 rounded-xl border transition-all duration-500 ${getTeamBgClass(currentTeams[0])} ${getTeamGlowClass(currentTeams[0])}`}>
-                  <div className="flex items-center justify-between mb-3 border-b border-white/5 pb-2">
-                    <span className={`font-mono text-xs font-black uppercase ${getTeamTextColor(currentTeams[0])}`}>
+                <div className={`p-3 rounded-xl border ${getTeamBgClass(currentTeams[0])} ${getTeamGlowClass(currentTeams[0])}`}>
+                  <div className="flex items-center justify-between mb-1.5 border-b border-white/5 pb-1">
+                    <span className={`font-mono text-[10px] font-black uppercase ${getTeamTextColor(currentTeams[0])}`}>
                       TEAM {currentTeams[0]}
                     </span>
-                    <span className="font-mono text-[9px] text-muted-foreground/50 uppercase tracking-widest">
-                      Aktiv
-                    </span>
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     {padRoster(teamAPlayers).map((p, idx) => (
-                      <div key={p.id || idx} className="flex items-center gap-2 px-3 py-1.5 rounded bg-black/30 border border-white/5 h-8">
-                        <span className="font-mono text-[9px] text-muted-foreground/40">0{idx + 1}</span>
-                        <span className="font-mono text-xs font-bold text-foreground/80 truncate">{p.name}</span>
+                      <div key={p.id || idx} className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-black/20 border border-white/5 h-6">
+                        <span className="font-mono text-[8px] text-muted-foreground/30">0{idx + 1}</span>
+                        <span className="font-mono text-[10px] font-bold text-foreground/80 truncate">{p.name}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* Team Right */}
-                <div className={`p-4 rounded-xl border transition-all duration-500 ${getTeamBgClass(currentTeams[1])} ${getTeamGlowClass(currentTeams[1])}`}>
-                  <div className="flex items-center justify-between mb-3 border-b border-white/5 pb-2">
-                    <span className={`font-mono text-xs font-black uppercase ${getTeamTextColor(currentTeams[1])}`}>
+                <div className={`p-3 rounded-xl border ${getTeamBgClass(currentTeams[1])} ${getTeamGlowClass(currentTeams[1])}`}>
+                  <div className="flex items-center justify-between mb-1.5 border-b border-white/5 pb-1">
+                    <span className={`font-mono text-[10px] font-black uppercase ${getTeamTextColor(currentTeams[1])}`}>
                       TEAM {currentTeams[1]}
                     </span>
-                    <span className="font-mono text-[9px] text-muted-foreground/50 uppercase tracking-widest">
-                      Aktiv
-                    </span>
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     {padRoster(teamBPlayers).map((p, idx) => (
-                      <div key={p.id || idx} className="flex items-center gap-2 px-3 py-1.5 rounded bg-black/30 border border-white/5 h-8">
-                        <span className="font-mono text-[9px] text-muted-foreground/40">0{idx + 1}</span>
-                        <span className="font-mono text-xs font-bold text-foreground/80 truncate">{p.name}</span>
+                      <div key={p.id || idx} className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-black/20 border border-white/5 h-6">
+                        <span className="font-mono text-[8px] text-muted-foreground/30">0{idx + 1}</span>
+                        <span className="font-mono text-[10px] font-bold text-foreground/80 truncate">{p.name}</span>
                       </div>
                     ))}
                   </div>
@@ -471,6 +491,7 @@ export default function StreamerPage() {
             </motion.div>
           )}
         </div>
+      </div>
       </div>
 
       {/* Victory Showcase if match3Winner is set and currentMatch is 4 */}

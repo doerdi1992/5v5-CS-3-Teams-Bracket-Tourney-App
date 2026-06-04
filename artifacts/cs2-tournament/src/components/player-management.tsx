@@ -10,6 +10,7 @@ import {
   getGetTeamsQueryKey,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -23,6 +24,10 @@ export default function PlayerManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [bulkInput, setBulkInput] = useState("");
+  const [showManualAdd, setShowManualAdd] = useState(false);
+  const [singleName, setSingleName] = useState("");
+  const [singleSteam, setSingleSteam] = useState("");
+  const [isAddingSingle, setIsAddingSingle] = useState(false);
 
   const { data: players = [] } = useGetPlayers({ query: { queryKey: getGetPlayersQueryKey() } });
   const { data: teams } = useGetTeams({ query: { queryKey: getGetTeamsQueryKey() } });
@@ -48,6 +53,54 @@ export default function PlayerManagement() {
         },
       }
     );
+  };
+
+  const handleAddSingle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = singleName.trim();
+    if (!name) {
+      toast({ variant: "destructive", title: "Name erforderlich", description: "Bitte gib einen Namen für den Spieler ein." });
+      return;
+    }
+
+    let resolvedSteamId = singleSteam.trim();
+    setIsAddingSingle(true);
+
+    if (resolvedSteamId && !/^\d{17}$/.test(resolvedSteamId)) {
+      try {
+        const res = await fetch(`/api/players/resolve-steam?input=${encodeURIComponent(resolvedSteamId)}`);
+        const data = await res.json() as { steamId?: string; error?: string };
+        if (res.ok && data.steamId) {
+          resolvedSteamId = data.steamId;
+        } else {
+          throw new Error(data.error || "Steam-ID konnte nicht aufgelöst werden.");
+        }
+      } catch (err: any) {
+        toast({ variant: "destructive", title: "Fehler beim Auflösen der Steam-ID", description: err.message });
+        setIsAddingSingle(false);
+        return;
+      }
+    }
+
+    try {
+      const res = await fetch("/api/players", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, steamId: resolvedSteamId || undefined }),
+      });
+      if (!res.ok) {
+        const data = await res.json() as { error?: string };
+        throw new Error(data.error || "Fehler beim Hinzufügen.");
+      }
+      toast({ title: "Spieler hinzugefügt", description: `${name} wurde als akzeptierter Spieler hinzugefügt.` });
+      setSingleName("");
+      setSingleSteam("");
+      queryClient.invalidateQueries({ queryKey: getGetPlayersQueryKey() });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Fehler", description: err.message });
+    } finally {
+      setIsAddingSingle(false);
+    }
   };
 
   const setStatus = (id: string, status: "accepted" | "rejected") => {
@@ -97,31 +150,70 @@ export default function PlayerManagement() {
     <div className="grid gap-6 md:grid-cols-12">
       {/* Left Column */}
       <div className="md:col-span-8 space-y-6">
-        <Card className="border-border/50">
-          <CardHeader>
-            <CardTitle className="font-mono text-primary flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              MASSEN-IMPORT
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <Textarea
-                placeholder="Spielernamen einfügen (einer pro Zeile)..."
-                value={bulkInput}
-                onChange={(e) => setBulkInput(e.target.value)}
-                className="font-mono bg-background/50 min-h-[120px]"
-              />
+        {/* Large drafted active teams card */}
+        {teams && (teams.A.length > 0 || teams.B.length > 0 || teams.C.length > 0) && (
+          <Card className="border-border/50 border-t-primary border-t-2 animate-in fade-in slide-in-from-top-4 duration-300">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="font-mono text-primary uppercase text-sm tracking-wider">
+                Aktive Teams Lineup
+              </CardTitle>
               <Button
-                onClick={handleBulkAdd}
-                disabled={addPlayersMut.isPending || !bulkInput.trim()}
-                className="font-mono w-full md:w-auto"
+                onClick={handleRollTeams}
+                disabled={rollTeamsMut.isPending || acceptedPlayers.length < 15}
+                variant="outline"
+                className="font-mono text-[10px] h-8 uppercase tracking-widest"
               >
-                Spieler hinzufügen
+                Neu auslosen
               </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {(["A", "B", "C"] as const).map((t) => (
+                  <div
+                    key={t}
+                    className="border border-border/50 rounded-xl p-4 bg-background/40 flex flex-col justify-between min-h-[220px]"
+                  >
+                    <div>
+                      <div className="font-mono text-secondary font-bold mb-3 flex items-center justify-between border-b border-white/5 pb-2">
+                        <span>TEAM {t}</span>
+                        <Badge variant="outline" className="text-[10px] font-mono border-secondary/30 text-secondary">
+                          {teams[t].length}/5
+                        </Badge>
+                      </div>
+                      <div className="space-y-1.5">
+                        {teams[t].map((p) => (
+                          <div
+                            key={p.id}
+                            className={`flex items-center justify-between px-3 py-1.5 rounded-lg bg-black/20 border border-white/5 ${
+                              p.flagged ? "border-destructive/30 bg-destructive/5" : ""
+                            }`}
+                          >
+                            <span className="font-mono text-xs font-semibold truncate max-w-[110px] text-foreground/90">
+                              {p.name}
+                            </span>
+                            {p.flagged && (
+                              <Badge
+                                variant="destructive"
+                                className="text-[8px] font-black font-mono px-1 py-0 h-4 uppercase tracking-wider scale-95"
+                              >
+                                GOAT
+                              </Badge>
+                            )}
+                          </div>
+                        ))}
+                        {teams[t].length === 0 && (
+                          <div className="text-center font-mono text-[10px] text-muted-foreground/40 py-8">
+                            Leer
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="border-border/50">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -179,7 +271,7 @@ export default function PlayerManagement() {
                                 player.flagged ? "text-destructive" : "text-muted-foreground"
                               }`}
                             />
-                            Profi
+                            GOAT
                           </label>
                           <Switch
                             id={`flag-${player.id}`}
@@ -203,6 +295,79 @@ export default function PlayerManagement() {
             </ScrollArea>
           </CardContent>
         </Card>
+
+        {/* Collapsible Manual Add / Bulk Import at the bottom */}
+        <div className="pt-2">
+          <Button
+            variant="outline"
+            className="font-mono text-xs gap-1.5 border-border/60"
+            onClick={() => setShowManualAdd(!showManualAdd)}
+          >
+            {showManualAdd ? "Bereich ausblenden" : "Manuell hinzufügen"}
+          </Button>
+
+          {showManualAdd && (
+            <Card className="border-border/50 mt-4 animate-in fade-in slide-in-from-top-2 duration-200">
+              <CardHeader>
+                <CardTitle className="font-mono text-primary flex items-center gap-2 text-sm uppercase">
+                  <Users className="w-4 h-4" />
+                  MANUELL HINZUFÜGEN
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Part A: Add Single Player */}
+                <form onSubmit={handleAddSingle} className="space-y-3 p-4 bg-background/30 rounded-lg border border-border/40">
+                  <h4 className="font-mono text-xs text-secondary font-bold uppercase tracking-wider">Einzelnen Spieler hinzufügen</h4>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Name</label>
+                      <Input
+                        value={singleName}
+                        onChange={(e) => setSingleName(e.target.value)}
+                        placeholder="z.B. Janaxf"
+                        className="font-mono bg-background/50 h-9 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Steam-Profil / Steam64 ID</label>
+                      <Input
+                        value={singleSteam}
+                        onChange={(e) => setSingleSteam(e.target.value)}
+                        placeholder="Link oder 17 Ziffern"
+                        className="font-mono bg-background/50 h-9 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    type="submit"
+                    disabled={isAddingSingle || !singleName.trim()}
+                    className="font-mono w-full text-xs h-8 uppercase tracking-widest mt-2"
+                  >
+                    {isAddingSingle ? "Auflösen & Hinzufügen..." : "Spieler hinzufügen"}
+                  </Button>
+                </form>
+
+                {/* Part B: Bulk Import */}
+                <div className="space-y-3 p-4 bg-background/30 rounded-lg border border-border/40">
+                  <h4 className="font-mono text-xs text-secondary font-bold uppercase tracking-wider">Massen-Import (Namen-Liste)</h4>
+                  <Textarea
+                    placeholder="Spielernamen einfügen (einer pro Zeile)..."
+                    value={bulkInput}
+                    onChange={(e) => setBulkInput(e.target.value)}
+                    className="font-mono bg-background/50 min-h-[100px] text-sm"
+                  />
+                  <Button
+                    onClick={handleBulkAdd}
+                    disabled={addPlayersMut.isPending || !bulkInput.trim()}
+                    className="font-mono w-full text-xs h-8 uppercase tracking-widest"
+                  >
+                    Massen-Import starten
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
 
       {/* Right Column */}
@@ -259,47 +424,6 @@ export default function PlayerManagement() {
             </ScrollArea>
           </CardContent>
         </Card>
-
-        {teams && (
-          <div className="space-y-4">
-            <h3 className="font-mono text-lg text-primary border-b border-border pb-2">
-              AKTIVE TEAMS
-            </h3>
-            <div className="space-y-3">
-              {(["A", "B", "C"] as const).map((t) => (
-                <div
-                  key={t}
-                  className="border border-border/50 rounded-lg p-3 bg-card/30"
-                >
-                  <div className="font-mono text-secondary font-bold mb-2 flex items-center justify-between">
-                    <span>TEAM {t}</span>
-                    <Badge variant="outline" className="text-xs">
-                      {teams[t].length}/5
-                    </Badge>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {teams[t].map((p) => (
-                      <Badge
-                        key={p.id}
-                        variant="secondary"
-                        className={`font-mono text-xs ${
-                          p.flagged
-                            ? "border-destructive text-destructive bg-destructive/10"
-                            : ""
-                        }`}
-                      >
-                        {p.name}
-                      </Badge>
-                    ))}
-                    {teams[t].length === 0 && (
-                      <span className="text-xs text-muted-foreground font-mono">Leer</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
