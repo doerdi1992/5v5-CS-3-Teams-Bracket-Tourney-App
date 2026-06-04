@@ -3,7 +3,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Eye, EyeOff, Lock } from "lucide-react";
+import { Eye, EyeOff, Lock, Settings } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import PlayerManagement from "@/components/player-management";
 import BracketMapRoll from "@/components/bracket-map-roll";
 import MapSetup from "@/components/map-setup";
@@ -97,21 +98,37 @@ export default function AdminPage() {
             <h1 className="text-3xl font-bold tracking-tighter text-primary font-mono">ADMIN_KONSOLE</h1>
             <p className="text-muted-foreground font-mono uppercase text-sm mt-1">Janaxf 5v5 CS2 Tunier-Verwaltung</p>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="font-mono text-xs text-muted-foreground hover:text-destructive"
-            onClick={() => { sessionStorage.removeItem(AUTH_KEY); setAuthed(false); }}
-          >
-            Abmelden
-          </Button>
+          <div className="flex flex-col items-end gap-1.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="font-mono text-xs text-muted-foreground hover:text-destructive h-7 px-2"
+              onClick={() => { sessionStorage.removeItem(AUTH_KEY); setAuthed(false); }}
+            >
+              Abmelden
+            </Button>
+
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 h-7 px-2 border-border/60">
+                  <Settings className="w-3.5 h-3.5" />
+                  Settings
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="sm:max-w-2xl w-[600px] overflow-y-auto bg-background border-l border-border p-6">
+                <SheetHeader className="mb-6">
+                  <SheetTitle className="font-mono text-xl uppercase text-primary">Einstellungen</SheetTitle>
+                </SheetHeader>
+                <MapSetup />
+              </SheetContent>
+            </Sheet>
+          </div>
         </header>
 
         <Tabs defaultValue="players" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 max-w-xl mb-6 bg-card border border-border">
+          <TabsList className="grid w-full grid-cols-2 max-w-md mb-6 bg-card border border-border">
             <TabsTrigger value="players" className="font-mono uppercase text-xs data-[state=active]:text-primary data-[state=active]:bg-background">Spielerverwaltung</TabsTrigger>
             <TabsTrigger value="bracket" className="font-mono uppercase text-xs data-[state=active]:text-secondary data-[state=active]:bg-background">Bracket & Karten</TabsTrigger>
-            <TabsTrigger value="mapsetup" className="font-mono uppercase text-xs data-[state=active]:text-orange-400 data-[state=active]:bg-background">Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="players" className="animate-in fade-in-50 zoom-in-95 duration-200">
@@ -120,10 +137,6 @@ export default function AdminPage() {
 
           <TabsContent value="bracket" className="animate-in fade-in-50 zoom-in-95 duration-200">
             <BracketMapRoll />
-          </TabsContent>
-
-          <TabsContent value="mapsetup" className="animate-in fade-in-50 zoom-in-95 duration-200">
-            <MapSetup />
           </TabsContent>
         </Tabs>
       </div>
