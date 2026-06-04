@@ -27,6 +27,17 @@ router.post("/bracket/reset", (_req, res) => {
   res.json(bracket);
 });
 
+router.post("/bracket/finale-format", (req, res) => {
+  const { bestOf } = req.body as { bestOf?: number };
+  if (bestOf !== 1 && bestOf !== 3) {
+    res.status(400).json({ error: "bestOf must be 1 or 3" });
+    return;
+  }
+  store.setFinaleBestOf(bestOf);
+  broadcastStateUpdate();
+  res.json({ success: true, finaleBestOf: bestOf });
+});
+
 router.post("/maps/roll", (req, res) => {
   const parsed = RollMapBody.safeParse(req.body);
   if (!parsed.success) {

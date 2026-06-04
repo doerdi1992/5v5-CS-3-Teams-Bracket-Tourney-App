@@ -13,15 +13,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { RefreshCw, Send, Trophy, Eye, EyeOff, Dices, Volume2, VolumeX } from "lucide-react";
+import { RefreshCw, Send, Trophy, Eye, EyeOff, Dices, Zap, Save } from "lucide-react";
 
 // ─── Animation constants ─────────────────────────────────────────────────────
 const WINNER_IDX = 68;        // winner tile index in the strip
 const ITEM_WIDTH = 196;       // px per tile (width + gap)
 const DURATION = 11500;       // ms total spin duration
+const VOLUME = 0.10;          // locked audio volume (10%)
 
 // ─── Audio synthesiser ────────────────────────────────────────────────────────
 function playTick(ctx: AudioContext, vol: number) {
@@ -84,36 +86,63 @@ function buildStrip(maps: string[], winner: string): string[] {
   return items;
 }
 
+// ─── Extended bracket type (includes BO3 fields from our backend) ────────────
+interface ExtendedBracket {
+  currentMatch: number;
+  match1: string | null;
+  match2: string | null;
+  match3: string | null;
+  match1Winner: string | null;
+  match2Winner: string | null;
+  match3Winner: string | null;
+  rolledMap: string | null;
+  finaleBestOf?: 1 | 3;
+  finaleScore?: { left: number; right: number };
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function BracketMapRoll() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { data: bracket } = useGetBracket({ query: { queryKey: getGetBracketQueryKey() } });
+  const { data: rawBracket } = useGetBracket({ query: { queryKey: getGetBracketQueryKey() } });
+  const bracket = rawBracket as ExtendedBracket | undefined;
   const { data: mapImages = {} } = useGetMapImages({ query: { queryKey: getGetMapImagesQueryKey() } });
 
-  const [mapPool, setMapPool] = useState(
-    "Mirage\nInferno\nDust2\nNuke\nOverpass\nAnubis\nVertigo\nAncient"
+  // ── localStorage-backed state ──────────────────────────────────────────────
+  const [mapPool, setMapPool] = useState(() =>
+    localStorage.getItem("cs2_map_pool") ?? "Mirage\nInferno\nDust2\nNuke\nOverpass\nAnubis\nVertigo\nAncient"
   );
-  const [connectionString, setConnectionString] = useState("");
+  const [connectionString, setConnectionString] = useState(() =>
+    localStorage.getItem("cs2_connection_string") ?? ""
+  );
+  const [autoSend, setAutoSend] = useState(() =>
+    localStorage.getItem("cs2_auto_send") === "1"
+  );
+
   const [showConnection, setShowConnection] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
   const [stripItems, setStripItems] = useState<string[]>([]);
   const [revealed, setRevealed] = useState(false);
-  const [volume, setVolume] = useState(0.7);
-  const [isMuted, setIsMuted] = useState(false);
 
-  // Refs for animation
+  // Persist to localStorage on change
+  useEffect(() => { localStorage.setItem("cs2_map_pool", mapPool); }, [mapPool]);
+  useEffect(() => { localStorage.setItem("cs2_connection_string", connectionString); }, [connectionString]);
+  useEffect(() => { localStorage.setItem("cs2_auto_send", autoSend ? "1" : "0"); }, [autoSend]);
+
+  // ── Refs ────────────────────────────────────────────────────────────────────
   const stripRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number | null>(null);
   const prevScrollRef = useRef(0);
   const audioCtxRef = useRef<AudioContext | null>(null);
-  // Refs to read latest volume/mute inside the rAF loop
-  const volumeRef = useRef(volume);
-  const isMutedRef = useRef(isMuted);
-  useEffect(() => { volumeRef.current = volume; }, [volume]);
-  useEffect(() => { isMutedRef.current = isMuted; }, [isMuted]);
+  const connectionStringRef = useRef(connectionString);
+  const autoSendRef = useRef(autoSend);
+  const containerWidthRef = useRef(800);
 
+  useEffect(() => { connectionStringRef.current = connectionString; }, [connectionString]);
+  useEffect(() => { autoSendRef.current = autoSend; }, [autoSend]);
+
+  // ── Mutations ──────────────────────────────────────────────────────────────
   const setWinnerMut = useSetMatchWinner();
   const resetBracketMut = useResetBracket();
   const rollMapMut = useRollMap();
@@ -131,6 +160,7 @@ export default function BracketMapRoll() {
     prevScrollRef.current = 0;
     if (stripRef.current) stripRef.current.style.transform = "translateX(0px)";
 
+    const cw = containerWidthRef.current;
     const startTime = performance.now();
 
     const tick = () => {
@@ -144,15 +174,16 @@ export default function BracketMapRoll() {
         stripRef.current.style.transform = `translateX(${-scrollPos}px)`;
       }
 
-      // Detect tile boundary crossings → play a tick for each one
-      if (!isMutedRef.current) {
-        const prevTile = Math.floor(prevScrollRef.current / ITEM_WIDTH);
-        const curTile = Math.floor(scrollPos / ITEM_WIDTH);
-        for (let i = prevTile + 1; i <= curTile; i++) {
-          // Volume ramps up as animation slows (more tension near the end)
-          const vol = (0.10 + 0.65 * Math.min(i / WINNER_IDX, 1)) * volumeRef.current;
-          playTick(ctx, vol);
-        }
+      // Edge-aligned tick sounds: fire when tile edges cross the selector line
+      const selectorPos = cw / 2;
+      const prevAdjusted = prevScrollRef.current + selectorPos;
+      const curAdjusted = scrollPos + selectorPos;
+      const prevTile = Math.floor(prevAdjusted / ITEM_WIDTH);
+      const curTile = Math.floor(curAdjusted / ITEM_WIDTH);
+      for (let i = prevTile + 1; i <= curTile; i++) {
+        // Volume ramps up as animation slows (more tension near the end)
+        const vol = (0.10 + 0.65 * t) * VOLUME;
+        playTick(ctx, vol);
       }
       prevScrollRef.current = scrollPos;
 
@@ -164,14 +195,27 @@ export default function BracketMapRoll() {
         }
         setIsSpinning(false);
         setRevealed(true);
-        if (!isMutedRef.current) playReveal(ctx, volumeRef.current);
+        playReveal(ctx, VOLUME);
         queryClient.invalidateQueries({ queryKey: getGetBracketQueryKey() });
+
+        // Auto-broadcast server if enabled and connection string is set
+        if (autoSendRef.current && connectionStringRef.current.trim()) {
+          broadcastMut.mutate(
+            { data: { connectionString: connectionStringRef.current } },
+            {
+              onSuccess: () => {
+                toast({ title: "Server automatisch gesendet", description: "Verbindungsdaten an aktive Teams übertragen." });
+              },
+            }
+          );
+        }
       }
     };
 
     rafRef.current = requestAnimationFrame(tick);
-  }, [queryClient]);
+  }, [queryClient, broadcastMut, toast]);
 
+  // ── Handlers ───────────────────────────────────────────────────────────────
   const handleSetWinner = (winner: "A" | "B" | "C") => {
     setWinnerMut.mutate(
       { data: { winner } },
@@ -203,7 +247,12 @@ export default function BracketMapRoll() {
           setStripItems(items);
           setIsSpinning(true);
           const containerWidth = containerRef.current?.offsetWidth ?? 800;
-          const totalScroll = WINNER_IDX * ITEM_WIDTH - containerWidth / 2 + ITEM_WIDTH / 2;
+          containerWidthRef.current = containerWidth;
+
+          // Random landing offset — like a real case opening, not always dead center
+          const randomOffset = (Math.random() - 0.5) * (ITEM_WIDTH * 0.8);
+          const totalScroll = WINNER_IDX * ITEM_WIDTH - containerWidth / 2 + ITEM_WIDTH / 2 + randomOffset;
+
           const ctx = getAudioCtx();
           // Wait one frame for React to render the strip items, then start animation
           setTimeout(() => startAnimation(totalScroll, ctx), 50);
@@ -225,6 +274,18 @@ export default function BracketMapRoll() {
     );
   };
 
+  const handleSetFinaleFormat = (bestOf: 1 | 3) => {
+    fetch("/api/bracket/finale-format", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bestOf }),
+    }).then(() => {
+      queryClient.invalidateQueries({ queryKey: getGetBracketQueryKey() });
+      toast({ title: `Finale: Best of ${bestOf}`, description: bestOf === 3 ? "Finale ist jetzt BO3." : "Finale ist jetzt BO1." });
+    });
+  };
+
+  // ── Derived state ──────────────────────────────────────────────────────────
   const getMatchTeams = (matchString: string | null | undefined): string[] => {
     if (!matchString) return [];
     const parts = matchString.split(" ");
@@ -237,6 +298,26 @@ export default function BracketMapRoll() {
     : bracket?.currentMatch === 3 ? getMatchTeams(bracket?.match3)
     : [];
 
+  const finaleBestOf = bracket?.finaleBestOf ?? 1;
+  const finaleScore = bracket?.finaleScore ?? { left: 0, right: 0 };
+  const finaleTeams = getMatchTeams(bracket?.match3);
+
+  // ── Team color helper ──────────────────────────────────────────────────────
+  const teamColor = (team: string | null): string => {
+    if (team === "A") return "hsl(var(--team-a))";
+    if (team === "B") return "hsl(var(--team-b))";
+    if (team === "C") return "hsl(var(--team-c))";
+    return "hsl(var(--primary))";
+  };
+
+  const teamColorClass = (team: string | null): string => {
+    if (team === "A") return "text-orange-500";
+    if (team === "B") return "text-cyan-400";
+    if (team === "C") return "text-purple-400";
+    return "text-primary";
+  };
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="grid gap-6 md:grid-cols-2">
       {/* ── Left: Bracket ── */}
@@ -269,26 +350,96 @@ export default function BracketMapRoll() {
                     )}
                     <div className="flex justify-between items-center font-mono mb-2">
                       <span className="text-muted-foreground text-xs uppercase">{label}</span>
-                      {winner && (
-                        <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/30">
-                          SIEGER: TEAM {winner}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {/* BO3 toggle — only on Finale */}
+                        {matchNum === 3 && (
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-[10px] font-mono uppercase tracking-wider ${finaleBestOf === 1 ? "text-foreground" : "text-muted-foreground/50"}`}>BO1</span>
+                            <Switch
+                              checked={finaleBestOf === 3}
+                              onCheckedChange={(checked) => handleSetFinaleFormat(checked ? 3 : 1)}
+                              className="scale-75"
+                              disabled={!!bracket.match3Winner}
+                            />
+                            <span className={`text-[10px] font-mono uppercase tracking-wider ${finaleBestOf === 3 ? "text-foreground" : "text-muted-foreground/50"}`}>BO3</span>
+                          </div>
+                        )}
+                        {winner && (
+                          <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/30">
+                            SIEGER: TEAM {winner}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center justify-between text-xl font-black font-mono">
-                      <span className={winner === leftTeam && winner ? "text-primary" : ""}>{left}</span>
+                      <span className={winner === leftTeam && winner ? teamColorClass(leftTeam) : ""}>{left}</span>
                       <span className="text-muted-foreground text-sm">VS</span>
-                      <span className={winner === rightTeam && winner ? "text-primary" : ""}>{right}</span>
+                      <span className={winner === rightTeam && winner ? teamColorClass(rightTeam) : ""}>{right}</span>
                     </div>
+
+                    {/* BO3 score display */}
+                    {matchNum === 3 && finaleBestOf === 3 && bracket.match3 && !bracket.match3Winner && (
+                      <div className="flex items-center justify-center gap-6 mt-3 pt-3 border-t border-border/30">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-xs font-mono uppercase ${teamColorClass(finaleTeams[0] ?? null)}`}>
+                            TEAM {finaleTeams[0] ?? "?"}
+                          </span>
+                          <div className="flex gap-1">
+                            {[0, 1].map((i) => (
+                              <div
+                                key={`l${i}`}
+                                className="w-2.5 h-2.5 rounded-full border"
+                                style={{
+                                  backgroundColor: i < finaleScore.left ? teamColor(finaleTeams[0] ?? null) : "transparent",
+                                  borderColor: teamColor(finaleTeams[0] ?? null),
+                                  opacity: i < finaleScore.left ? 1 : 0.3,
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <span className="text-muted-foreground text-xs font-mono">{finaleScore.left} — {finaleScore.right}</span>
+                        <div className="flex items-center gap-1.5">
+                          <div className="flex gap-1">
+                            {[0, 1].map((i) => (
+                              <div
+                                key={`r${i}`}
+                                className="w-2.5 h-2.5 rounded-full border"
+                                style={{
+                                  backgroundColor: i < finaleScore.right ? teamColor(finaleTeams[1] ?? null) : "transparent",
+                                  borderColor: teamColor(finaleTeams[1] ?? null),
+                                  opacity: i < finaleScore.right ? 1 : 0.3,
+                                }}
+                              />
+                            ))}
+                          </div>
+                          <span className={`text-xs font-mono uppercase ${teamColorClass(finaleTeams[1] ?? null)}`}>
+                            TEAM {finaleTeams[1] ?? "?"}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
 
                 {bracket.currentMatch <= 3 && currentTeams.length > 0 && (
                   <div className="pt-4 border-t border-border">
-                    <p className="font-mono text-xs text-muted-foreground mb-3 uppercase">Aktive Partie auflösen</p>
+                    <p className="font-mono text-xs text-muted-foreground mb-3 uppercase">
+                      {bracket.currentMatch === 3 && finaleBestOf === 3
+                        ? `Partie ${finaleScore.left + finaleScore.right + 1} von max. 3 — Sieger wählen`
+                        : "Aktive Partie auflösen"
+                      }
+                    </p>
                     <div className="flex gap-2">
                       {currentTeams.map((t) => (
-                        <Button key={t} className="flex-1 font-mono uppercase" variant="outline" disabled={setWinnerMut.isPending} onClick={() => handleSetWinner(t as "A" | "B" | "C")}>
+                        <Button
+                          key={t}
+                          className="flex-1 font-mono uppercase"
+                          variant="outline"
+                          disabled={setWinnerMut.isPending}
+                          onClick={() => handleSetWinner(t as "A" | "B" | "C")}
+                          style={{ borderColor: `${teamColor(t)}33`, color: teamColor(t) }}
+                        >
                           Team {t} gewinnt
                         </Button>
                       ))}
@@ -307,10 +458,16 @@ export default function BracketMapRoll() {
       <div className="space-y-6">
         <Card className="border-border/50 border-t-secondary border-t-2">
           <CardHeader>
-            <CardTitle className="font-mono text-secondary flex items-center gap-2">
-              <Dices className="w-5 h-5" />
-              KARTEN-AUSWAHL
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="font-mono text-secondary flex items-center gap-2">
+                <Dices className="w-5 h-5" />
+                KARTEN-AUSWAHL
+              </CardTitle>
+              <span className="flex items-center gap-1.5 text-[10px] font-mono text-green-500/70 uppercase tracking-wider">
+                <Save className="w-3 h-3" />
+                Auto-gespeichert
+              </span>
+            </div>
             <CardDescription className="font-mono text-xs">Pool (eine pro Zeile oder kommagetrennt)</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -320,37 +477,6 @@ export default function BracketMapRoll() {
               className="font-mono text-sm bg-background/50 min-h-[80px] resize-none"
               disabled={isSpinning}
             />
-
-            {/* Volume controls */}
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 flex-shrink-0 text-muted-foreground hover:text-foreground"
-                onClick={() => setIsMuted((v) => !v)}
-                title={isMuted ? "Ton einschalten" : "Ton ausschalten"}
-              >
-                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-              </Button>
-              <div className="flex-1">
-                <Slider
-                  value={[isMuted ? 0 : volume * 100]}
-                  onValueChange={([v]) => {
-                    setVolume(v / 100);
-                    if (v > 0) setIsMuted(false);
-                    if (v === 0) setIsMuted(true);
-                  }}
-                  min={0}
-                  max={100}
-                  step={1}
-                  className="w-full"
-                  disabled={isSpinning}
-                />
-              </div>
-              <span className="text-xs font-mono text-muted-foreground w-8 text-right">
-                {isMuted ? "0%" : `${Math.round(volume * 100)}%`}
-              </span>
-            </div>
 
             {/* Reel container */}
             <div
@@ -461,10 +587,16 @@ export default function BracketMapRoll() {
         {/* Server Broadcast */}
         <Card className="border-border/50 bg-destructive/5 border-destructive/20">
           <CardHeader>
-            <CardTitle className="font-mono text-destructive flex items-center gap-2">
-              <Send className="w-5 h-5" />
-              SERVER SENDEN
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="font-mono text-destructive flex items-center gap-2">
+                <Send className="w-5 h-5" />
+                SERVER SENDEN
+              </CardTitle>
+              <span className="flex items-center gap-1.5 text-[10px] font-mono text-green-500/70 uppercase tracking-wider">
+                <Save className="w-3 h-3" />
+                Auto-gespeichert
+              </span>
+            </div>
             <CardDescription className="font-mono text-xs">Verbindungsdaten an aktive Teams übertragen</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -485,6 +617,22 @@ export default function BracketMapRoll() {
                 {showConnection ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+
+            {/* Auto-send toggle */}
+            <div className="flex items-center justify-between p-3 rounded-md border border-border/30 bg-background/30">
+              <div className="flex items-center gap-2">
+                <Zap className={`w-4 h-4 ${autoSend ? "text-yellow-500" : "text-muted-foreground"}`} />
+                <Label htmlFor="auto-send" className="font-mono text-xs uppercase tracking-wider cursor-pointer">
+                  Auto-Senden nach Karten-Roll
+                </Label>
+              </div>
+              <Switch
+                id="auto-send"
+                checked={autoSend}
+                onCheckedChange={setAutoSend}
+              />
+            </div>
+
             <Button
               variant="destructive"
               className="w-full font-mono font-bold tracking-widest"

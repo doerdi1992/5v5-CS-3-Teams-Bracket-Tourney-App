@@ -27,6 +27,8 @@ export interface BracketState {
   match2Winner: string | null;
   match3Winner: string | null;
   rolledMap: string | null;
+  finaleBestOf: 1 | 3;
+  finaleScore: { left: number; right: number };
 }
 
 function freshBracket(): BracketState {
@@ -39,6 +41,8 @@ function freshBracket(): BracketState {
     match2Winner: null,
     match3Winner: null,
     rolledMap: null,
+    finaleBestOf: 1,
+    finaleScore: { left: 0, right: 0 },
   };
 }
 
@@ -137,8 +141,24 @@ class Store {
       b.match2Winner = winner;
       b.currentMatch = 3;
     } else if (b.currentMatch === 3) {
-      b.match3Winner = winner;
-      b.currentMatch = 4;
+      if (b.finaleBestOf === 3) {
+        // BO3: determine which side this winner is on
+        const finaleTeams = this.getFinaleTeams();
+        if (winner === finaleTeams[0]) {
+          b.finaleScore.left++;
+        } else {
+          b.finaleScore.right++;
+        }
+        // Check if someone reached 2 wins
+        if (b.finaleScore.left >= 2 || b.finaleScore.right >= 2) {
+          b.match3Winner = winner;
+          b.currentMatch = 4;
+        }
+        // Otherwise stay on match 3 for next sub-game
+      } else {
+        b.match3Winner = winner;
+        b.currentMatch = 4;
+      }
     }
     return b;
   }
@@ -179,6 +199,21 @@ class Store {
       return ["B", "C"];
     }
     return [];
+  }
+
+  getFinaleTeams(): TeamName[] {
+    const b = this.bracketState;
+    if (b.match3) {
+      const parts = b.match3.split(" ");
+      if (parts.length >= 3) return [parts[0] as TeamName, parts[2] as TeamName];
+    }
+    return this.getCurrentMatchTeams();
+  }
+
+  setFinaleBestOf(value: 1 | 3): void {
+    this.bracketState.finaleBestOf = value;
+    this.bracketState.finaleScore = { left: 0, right: 0 };
+    // Don't reset match3Winner if already set
   }
 
   getFullState() {
