@@ -273,30 +273,42 @@ export async function runMatchzyStartSequence(rolledMapName?: string): Promise<{
       throw new Error(`FTP Upload fehlgeschlagen: ${err.message}`);
     }
 
-    // Connect to RCON to change map first, allowing fresh load
-    console.log(`[MatchZy Pipeline] RCON verbunden -> Mapchange-Befehl senden`);
+    // Step 1: End any existing match so loadmatch won't be rejected
+    console.log(`[MatchZy Pipeline] RCON → matchzy_endmatch (beende laufendes Match)`);
+    try {
+      await Rcon.send(finalHost, port, password, "matchzy_endmatch");
+      console.log(`[MatchZy Pipeline] EndMatch gesendet.`);
+    } catch (e: any) {
+      console.log(`[MatchZy Pipeline] EndMatch: ${e.message} (nicht kritisch)`);
+    }
+
+    // Brief pause for matchzy to reset state
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // Step 2: Change map
+    console.log(`[MatchZy Pipeline] RCON → changelevel "${targetMap}"`);
     const changeCmd = `changelevel "${targetMap}"`;
     try {
       await Rcon.send(finalHost, port, password, changeCmd);
     } catch (e: any) {
-      console.log(`[MatchZy Pipeline] RCON Mapchange gesendet (Socket-Abbruch erwartet): ${e.message}`);
+      console.log(`[MatchZy Pipeline] Mapchange gesendet (Socket-Abbruch erwartet): ${e.message}`);
     }
 
-    // Wait for server map reboot to complete
-    console.log(`[MatchZy Pipeline] Warte 6 Sekunden auf Server-Neustart...`);
-    await new Promise((resolve) => setTimeout(resolve, 6000));
+    // Wait for server map reboot
+    console.log(`[MatchZy Pipeline] Warte 8 Sekunden auf Server-Neustart...`);
+    await new Promise((resolve) => setTimeout(resolve, 8000));
 
-    // Connect and execute MatchZy loadmatch command
+    // Step 3: Load match config
     const loadCmd = `matchzy_loadmatch "${relativeMatchPath}"`;
-    console.log(`[MatchZy Pipeline] Sende Befehl -> ${loadCmd}`);
+    console.log(`[MatchZy Pipeline] RCON → ${loadCmd}`);
     const output = await sendRconWithRetry(finalHost, port, password, loadCmd);
 
-    // Run matchzy_restart to ensure team sorting acts immediately
-    console.log(`[MatchZy Pipeline] Sende Befehl -> matchzy_restart`);
+    // Step 4: Restart to apply team assignments
+    console.log(`[MatchZy Pipeline] RCON → matchzy_restart`);
     try {
       await sendRconWithRetry(finalHost, port, password, "matchzy_restart", 3, 2000);
     } catch (e: any) {
-      console.warn(`[MatchZy Pipeline] Restart-Befehl fehlgeschlagen (nicht kritisch): ${e.message}`);
+      console.warn(`[MatchZy Pipeline] Restart nicht kritisch: ${e.message}`);
     }
 
     return { success: true, command: loadCmd, output };
