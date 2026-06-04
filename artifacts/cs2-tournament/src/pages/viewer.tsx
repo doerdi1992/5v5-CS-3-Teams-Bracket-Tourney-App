@@ -46,6 +46,7 @@ export default function ViewerPage() {
   const [nameInput, setNameInput] = useState("");
   const [steamIdInput, setSteamIdInput] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
+  const [showFallback, setShowFallback] = useState(false);
   const [connectionString, setConnectionString] = useState<string | null>(() =>
     localStorage.getItem("cs2_viewer_connection")
   );
@@ -200,20 +201,73 @@ export default function ViewerPage() {
                   <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Kampfname (für Overlay)</label>
                   <Input value={nameInput} onChange={(e) => setNameInput(e.target.value)} placeholder="Kampfname eingeben..." className="font-mono bg-background/50" />
                 </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between items-center">
-                    <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Steam-Profil oder Steam64 ID (für Server-Join)</label>
-                    <a
-                      href="https://steamid.xyz/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[9px] font-mono text-primary hover:underline flex items-center gap-0.5 transition-colors"
-                    >
-                      <ExternalLink className="w-2.5 h-2.5" />
-                      ID finden
-                    </a>
-                  </div>
-                  <Input value={steamIdInput} onChange={(e) => setSteamIdInput(e.target.value)} placeholder="z.B. https://steamcommunity.com/id/name oder raw ID" className="font-mono bg-background/50" />
+                <div className="space-y-2">
+                  {!showFallback ? (
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Steam-Profil (Link oder Name)</label>
+                      <Input
+                        value={steamIdInput}
+                        onChange={(e) => setSteamIdInput(e.target.value)}
+                        placeholder="z.B. https://steamcommunity.com/id/name oder dein Custom-Name"
+                        className="font-mono bg-background/50"
+                      />
+                      <div className="flex justify-between items-center mt-1.5 px-0.5">
+                        <a
+                          href="https://steamcommunity.com/my/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[9px] font-mono text-primary hover:underline flex items-center gap-0.5 transition-colors"
+                        >
+                          <ExternalLink className="w-2.5 h-2.5" />
+                          Mein Steam-Profil öffnen (zum Kopieren)
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowFallback(true);
+                            setSteamIdInput("");
+                          }}
+                          className="text-[9px] font-mono text-muted-foreground hover:text-primary transition-colors underline"
+                        >
+                          Manuelle ID
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Manuelle Steam64 ID (17 Ziffern)</label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowFallback(false);
+                            setSteamIdInput("");
+                          }}
+                          className="text-[9px] font-mono text-muted-foreground hover:text-primary transition-colors underline"
+                        >
+                          Zurück zum Profil-Link
+                        </button>
+                      </div>
+                      <Input
+                        value={steamIdInput}
+                        onChange={(e) => setSteamIdInput(e.target.value)}
+                        placeholder="z.B. 76561198000000000"
+                        className="font-mono bg-background/50"
+                      />
+                      <div className="flex justify-between items-center mt-1">
+                        <span className="text-[9px] font-mono text-muted-foreground">Die 17-stellige ID auslesen:</span>
+                        <a
+                          href="https://steamid.xyz/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[9px] font-mono text-primary hover:underline flex items-center gap-0.5 transition-colors"
+                        >
+                          <ExternalLink className="w-2.5 h-2.5" />
+                          SteamID.xyz öffnen
+                        </a>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <Button type="submit" className="w-full font-mono uppercase tracking-widest" disabled={isRegistering}>
                   {isRegistering ? "Verbinde..." : "Anmelden"}
