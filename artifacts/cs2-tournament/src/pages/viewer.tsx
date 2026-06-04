@@ -46,7 +46,9 @@ export default function ViewerPage() {
   const [nameInput, setNameInput] = useState("");
   const [steamIdInput, setSteamIdInput] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
-  const [connectionString, setConnectionString] = useState<string | null>(null);
+  const [connectionString, setConnectionString] = useState<string | null>(() =>
+    localStorage.getItem("cs2_viewer_connection")
+  );
   const [showConnectionModal, setShowConnectionModal] = useState(false);
 
   const { data: players } = useGetPlayers({ query: { queryKey: getGetPlayersQueryKey() } });
@@ -79,6 +81,7 @@ export default function ViewerPage() {
       const me = players?.find((p) => p.name === playerName);
       if (me?.team && payload.teams.includes(me.team)) {
         setConnectionString(payload.connectionString);
+        localStorage.setItem("cs2_viewer_connection", payload.connectionString);
         setShowConnectionModal(true);
       }
     };
@@ -158,6 +161,24 @@ export default function ViewerPage() {
   const rolledMap = bracket?.rolledMap ?? null;
   const mapImageUrl = rolledMap ? (mapImages[rolledMap] ?? null) : null;
 
+  const currentTeams =
+    bracket?.currentMatch === 1 ? ["A", "B"]
+    : bracket?.currentMatch === 2 ? (bracket.match1Winner === "A" ? ["B", "C"] : ["A", "C"])
+    : bracket?.currentMatch === 3 ? (bracket.match1Winner === "A" ? ["A", "C"] : ["B", "C"])
+    : [];
+
+  const isMyMatchActive = me?.team && currentTeams.includes(me.team) && rolledMap;
+
+  // Clear connection string if the match is no longer active
+  useEffect(() => {
+    if (isRegistered && bracket && players) {
+      if (!isMyMatchActive) {
+        setConnectionString(null);
+        localStorage.removeItem("cs2_viewer_connection");
+      }
+    }
+  }, [isMyMatchActive, isRegistered, bracket, players]);
+
   return (
     <div className="min-h-screen bg-background text-foreground p-6 flex flex-col items-center">
       <div className="max-w-4xl w-full space-y-8">
@@ -224,6 +245,33 @@ export default function ViewerPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Server connection card */}
+            {connectionString && (
+              <Card className="border-green-500/30 bg-green-500/5 animate-in fade-in slide-in-from-top-4 duration-300">
+                <CardHeader className="pb-2">
+                  <CardTitle className="font-mono text-lg text-green-500 flex items-center gap-2">
+                    <Server className="w-5 h-5 animate-pulse" />
+                    SPIEL BEREIT — SERVER VERBINDUNG
+                  </CardTitle>
+                  <CardDescription className="text-xs uppercase font-mono tracking-wider text-muted-foreground">Dein Team wurde zugewiesen. Tritt dem Server bei:</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="p-3 bg-black/40 rounded border border-border flex items-center justify-between">
+                    <code className="text-secondary font-mono text-sm break-all">{connectionString}</code>
+                    <Button variant="ghost" size="icon" onClick={copyConnectionString} className="ml-2 hover:text-primary h-8 w-8 flex-shrink-0">
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <a href={getSteamUrl(connectionString)} className="w-full block">
+                    <Button className="w-full font-mono uppercase tracking-widest bg-green-600 hover:bg-green-700 text-white gap-2 h-10">
+                      <Play className="w-4 h-4 fill-current" />
+                      Server Beitreten (CS2)
+                    </Button>
+                  </a>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Live Bracket */}
             <Card className="border-border/50 bg-card/30">
