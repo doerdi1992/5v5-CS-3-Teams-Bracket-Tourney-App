@@ -55,3 +55,6 @@ Thumbs.db
 .env.development
 .env.production
 .env.staging
+
+# Credentials and server database configs
+artifacts/api-server/server_config.json
