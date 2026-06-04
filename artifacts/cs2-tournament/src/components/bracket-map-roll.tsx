@@ -65,8 +65,7 @@ interface ExtendedBracket {
   match3Winner: string | null;
   match4Winner: string | null;
   rolledMap: string | null;
-  finaleBestOf?: 1 | 3;
-  finaleScore?: { left: number; right: number };
+
   match4BestOf?: 1 | 3;
   match4Score?: { left: number; right: number };
   match1Rounds?: { left: number; right: number } | null;
@@ -284,16 +283,7 @@ export default function BracketMapRoll() {
   };
 
 
-  const handleSetFinaleFormat = (bestOf: 1 | 3) => {
-    fetch("/api/bracket/finale-format", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bestOf }),
-    }).then(() => {
-      queryClient.invalidateQueries({ queryKey: getGetFullStateQueryKey() });
-      toast({ title: `Finale: Best of ${bestOf}`, description: bestOf === 3 ? "Finale ist jetzt BO3." : "Finale ist jetzt BO1." });
-    });
-  };
+
 
   const handleSetTiebreakerFormat = (bestOf: 1 | 3) => {
     fetch("/api/bracket/tiebreaker-format", {
@@ -320,9 +310,7 @@ export default function BracketMapRoll() {
     : bracket?.currentMatch === 4 ? getMatchTeams(bracket?.match4)
     : [];
 
-  const finaleBestOf = bracket?.finaleBestOf ?? 1;
-  const finaleScore = bracket?.finaleScore ?? { left: 0, right: 0 };
-  const finaleTeams = getMatchTeams(bracket?.match3);
+
 
   // ── Team color helper ──────────────────────────────────────────────────────
   const teamColor = (team: string | null): string => {
@@ -410,20 +398,8 @@ export default function BracketMapRoll() {
                     <div className="flex justify-between items-center font-mono mb-2">
                       <span className="text-muted-foreground text-xs uppercase">{label}</span>
                       <div className="flex items-center gap-2">
-                        {/* BO3 toggle — only on Finale */}
-                        {matchNum === 3 && (
-                          <div className="flex items-center gap-1.5">
-                            <span className={`text-[10px] font-mono uppercase tracking-wider ${finaleBestOf === 1 ? "text-foreground" : "text-muted-foreground/50"}`}>BO1</span>
-                            <Switch
-                              checked={finaleBestOf === 3}
-                              onCheckedChange={(checked) => handleSetFinaleFormat(checked ? 3 : 1)}
-                              className="scale-75"
-                              disabled={!!bracket.match3Winner}
-                            />
-                            <span className={`text-[10px] font-mono uppercase tracking-wider ${finaleBestOf === 3 ? "text-foreground" : "text-muted-foreground/50"}`}>BO3</span>
-                          </div>
-                        )}
-                        {/* BO3 toggle — only on Tiebreaker */}
+
+                        {/* BO3 toggle — only on Tiebreaker (Match 4, after 3-way tie) */}
                         {matchNum === 4 && (
                           <div className="flex items-center gap-1.5">
                             <span className={`text-[10px] font-mono uppercase tracking-wider ${(bracket.match4BestOf ?? 1) === 1 ? "text-foreground" : "text-muted-foreground/50"}`}>BO1</span>
@@ -465,48 +441,7 @@ export default function BracketMapRoll() {
                       </div>
                     </div>
 
-                    {/* BO3 score display */}
-                    {matchNum === 3 && finaleBestOf === 3 && bracket.match3 && !bracket.match3Winner && (
-                      <div className="flex items-center justify-center gap-6 mt-3 pt-3 border-t border-border/30">
-                        <div className="flex items-center gap-1.5">
-                          <span className={`text-xs font-mono uppercase ${teamColorClass(finaleTeams[0] ?? null)}`}>
-                            TEAM {finaleTeams[0] ?? "?"}
-                          </span>
-                          <div className="flex gap-1">
-                            {[0, 1].map((i) => (
-                              <div
-                                key={`l${i}`}
-                                className="w-2.5 h-2.5 rounded-full border"
-                                style={{
-                                  backgroundColor: i < finaleScore.left ? teamColor(finaleTeams[0] ?? null) : "transparent",
-                                  borderColor: teamColor(finaleTeams[0] ?? null),
-                                  opacity: i < finaleScore.left ? 1 : 0.3,
-                                }}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                        <span className="text-muted-foreground text-xs font-mono">{finaleScore.left} — {finaleScore.right}</span>
-                        <div className="flex items-center gap-1.5">
-                          <div className="flex gap-1">
-                            {[0, 1].map((i) => (
-                              <div
-                                key={`r${i}`}
-                                className="w-2.5 h-2.5 rounded-full border"
-                                style={{
-                                  backgroundColor: i < finaleScore.right ? teamColor(finaleTeams[1] ?? null) : "transparent",
-                                  borderColor: teamColor(finaleTeams[1] ?? null),
-                                  opacity: i < finaleScore.right ? 1 : 0.3,
-                                }}
-                              />
-                            ))}
-                          </div>
-                          <span className={`text-xs font-mono uppercase ${teamColorClass(finaleTeams[1] ?? null)}`}>
-                            TEAM {finaleTeams[1] ?? "?"}
-                          </span>
-                        </div>
-                      </div>
-                    )}
+                    {/* BO3 score display — only for Tiebreaker (Match 4) */}
 
                     {matchNum === 4 && (bracket.match4BestOf ?? 1) === 3 && bracket.match4 && !bracket.match4Winner && (
                       <div className="flex items-center justify-center gap-6 mt-3 pt-3 border-t border-border/30">
@@ -555,9 +490,7 @@ export default function BracketMapRoll() {
                 {bracket.currentMatch <= 4 && currentTeams.length > 0 && (
                   <div className="pt-4 border-t border-border">
                     <p className="font-mono text-xs text-muted-foreground mb-3 uppercase">
-                      {bracket.currentMatch === 3 && finaleBestOf === 3
-                        ? `Partie ${finaleScore.left + finaleScore.right + 1} von max. 3 — Sieger wählen`
-                        : bracket.currentMatch === 4 && (bracket.match4BestOf ?? 1) === 3
+                      {bracket.currentMatch === 4 && (bracket.match4BestOf ?? 1) === 3
                         ? `Tiebreaker Partie ${(bracket.match4Score?.left ?? 0) + (bracket.match4Score?.right ?? 0) + 1} von max. 3 — Sieger wählen`
                         : "Aktive Partie auflösen"
                       }

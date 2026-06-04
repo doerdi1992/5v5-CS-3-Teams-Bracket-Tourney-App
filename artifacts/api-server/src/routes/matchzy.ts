@@ -42,31 +42,59 @@ export function generateMatchConfig() {
   const rolledMap = b.rolledMap || "mirage";
   const resolvedMap = resolveMapPath(rolledMap);
 
+  // Build player maps: Steam64ID -> display name
   const team1PlayersMap: Record<string, string> = {};
-  t1Players.forEach((p, idx) => {
-    const sId = p.steamId && p.steamId.trim().length === 17 
-      ? p.steamId 
-      : `765611980000001${idx.toString().padStart(2, "0")}`;
-    team1PlayersMap[sId] = p.name;
+  t1Players.forEach((p) => {
+    // Only include players with valid Steam64 IDs (17 digits starting with 7656)
+    if (p.steamId && p.steamId.trim().length === 17 && p.steamId.startsWith("7656")) {
+      team1PlayersMap[p.steamId.trim()] = p.name;
+    }
   });
 
   const team2PlayersMap: Record<string, string> = {};
-  t2Players.forEach((p, idx) => {
-    const sId = p.steamId && p.steamId.trim().length === 17 
-      ? p.steamId 
-      : `765611980000002${idx.toString().padStart(2, "0")}`;
-    team2PlayersMap[sId] = p.name;
+  t2Players.forEach((p) => {
+    if (p.steamId && p.steamId.trim().length === 17 && p.steamId.startsWith("7656")) {
+      team2PlayersMap[p.steamId.trim()] = p.name;
+    }
   });
 
-  const matchId = 1000 + b.currentMatch + Math.floor(Math.random() * 1000);
+  // Warn if teams have no valid Steam IDs
+  if (Object.keys(team1PlayersMap).length === 0) {
+    console.warn(`[MatchZy] TEAM ${t1Letter} hat keine gültigen Steam64-IDs! Spieler können nicht automatisch zugewiesen werden.`);
+  }
+  if (Object.keys(team2PlayersMap).length === 0) {
+    console.warn(`[MatchZy] TEAM ${t2Letter} hat keine gültigen Steam64-IDs! Spieler können nicht automatisch zugewiesen werden.`);
+  }
+
+  const matchId = `match_${b.currentMatch}_${Date.now()}`;
+
+  // Determine how many maps this match plays
+  // For tiebreaker BO3 (match 4 with match4BestOf === 3), num_maps = 3
+  let numMaps = 1;
+  let maplist = [resolvedMap];
+  let skipVeto = true;
+
+  if (b.currentMatch === 4 && b.match4BestOf === 3) {
+    numMaps = 3;
+    // For BO3 we need 3 maps — use the rolled map + 2 others from the registry
+    // The rolled map is Map 1, MatchZy will handle the rest via veto or we pre-fill
+    skipVeto = true; // still skip veto, we pick all maps
+    maplist = [resolvedMap]; // MatchZy will play this map for all 3 games if only 1 provided
+  }
 
   return {
     matchId,
     resolvedMap,
     config: {
       matchid: matchId,
-      num_maps: 1,
-      maplist: [resolvedMap],
+      num_maps: numMaps,
+      maplist: maplist,
+      skip_veto: skipVeto,
+      players_per_team: 5,
+      min_players_to_ready: 1,
+      min_spectators_to_ready: 0,
+      clinch_series: true,
+      map_sides: ["knife"],
       team1: {
         name: `TEAM ${t1Letter}`,
         players: team1PlayersMap
@@ -74,10 +102,16 @@ export function generateMatchConfig() {
       team2: {
         name: `TEAM ${t2Letter}`,
         players: team2PlayersMap
+      },
+      cvars: {
+        mp_overtime_enable: "1",
+        mp_overtime_maxrounds: "6",
+        mp_maxrounds: "24"
       }
     }
   };
 }
+
 
 /**
  * GET /api/matchzy/active-match.json

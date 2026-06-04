@@ -49,8 +49,7 @@ export interface BracketState {
   match3Winner: string | null;
   match4Winner: string | null;
   rolledMap: string | null;
-  finaleBestOf: 1 | 3;
-  finaleScore: { left: number; right: number };
+
   match4BestOf: 1 | 3;
   match4Score: { left: number; right: number };
   match1Rounds?: { left: number; right: number } | null;
@@ -71,8 +70,7 @@ function freshBracket(): BracketState {
     match3Winner: null,
     match4Winner: null,
     rolledMap: null,
-    finaleBestOf: 1,
-    finaleScore: { left: 0, right: 0 },
+
     match4BestOf: 1,
     match4Score: { left: 0, right: 0 },
     match1Rounds: null,
@@ -271,32 +269,10 @@ class Store {
       b.match2Rounds = rounds || null;
       b.currentMatch = 3;
     } else if (b.currentMatch === 3) {
-      if (b.finaleBestOf === 3) {
-        // BO3: determine which side this winner is on
-        const finaleTeams = this.getFinaleTeams();
-        if (winner === finaleTeams[0]) {
-          b.finaleScore.left++;
-        } else {
-          b.finaleScore.right++;
-        }
-        // Accumulate rounds for Match 3
-        if (rounds) {
-          b.match3Rounds = {
-            left: (b.match3Rounds?.left || 0) + rounds.left,
-            right: (b.match3Rounds?.right || 0) + rounds.right,
-          };
-        }
-        // Check if someone reached 2 wins
-        if (b.finaleScore.left >= 2 || b.finaleScore.right >= 2) {
-          b.match3Winner = winner;
-          this.evaluatePostMatch3(b);
-        }
-        // Otherwise stay on match 3 for next sub-game
-      } else {
-        b.match3Winner = winner;
-        b.match3Rounds = rounds || null;
-        this.evaluatePostMatch3(b);
-      }
+      // Match 3 is always BO1
+      b.match3Winner = winner;
+      b.match3Rounds = rounds || null;
+      this.evaluatePostMatch3(b);
     } else if (b.currentMatch === 4) {
       if (b.match4BestOf === 3) {
         // BO3 for Tiebreaker
@@ -423,10 +399,8 @@ class Store {
     return [];
   }
 
-  setFinaleBestOf(value: 1 | 3): void {
-    this.bracketState.finaleBestOf = value;
-    this.bracketState.finaleScore = { left: 0, right: 0 };
-  }
+  // BO3 option is only available for the tiebreaker (Match 4)
+  // It can only be activated after all 3 matches are played with a 3-way tie
 
   setTiebreakerBestOf(value: 1 | 3): void {
     this.bracketState.match4BestOf = value;

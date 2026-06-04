@@ -42,16 +42,8 @@ router.post("/bracket/reset", (_req, res) => {
   res.json(bracket);
 });
 
-router.post("/bracket/finale-format", (req, res) => {
-  const { bestOf } = req.body as { bestOf?: number };
-  if (bestOf !== 1 && bestOf !== 3) {
-    res.status(400).json({ error: "bestOf must be 1 or 3" });
-    return;
-  }
-  store.setFinaleBestOf(bestOf);
-  broadcastStateUpdate();
-  res.json({ success: true, finaleBestOf: bestOf });
-});
+// BO3 toggle is only available for the tiebreaker match (Match 4)
+// This endpoint was removed — use /bracket/tiebreaker-format instead
 
 router.post("/bracket/tiebreaker-format", (req, res) => {
   const { bestOf } = req.body as { bestOf?: number };

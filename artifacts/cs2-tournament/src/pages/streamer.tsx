@@ -87,8 +87,6 @@ interface MatchCardProps {
   winner: string | null | undefined;
   leftTeam: string | null;
   rightTeam: string | null;
-  finaleBestOf?: number;
-  finaleScore?: { left: number; right: number };
 }
 
 function MatchCard({
@@ -100,8 +98,6 @@ function MatchCard({
   winner,
   leftTeam,
   rightTeam,
-  finaleBestOf = 1,
-  finaleScore = { left: 0, right: 0 },
 }: MatchCardProps) {
   const isActive = currentMatch === matchNum;
   const isFinished = currentMatch > matchNum || !!winner;
@@ -164,42 +160,7 @@ function MatchCard({
         </div>
       </div>
 
-      {/* BO3 Score Dots inside Match Card */}
-      {matchNum === 3 && finaleBestOf === 3 && leftTeam && rightTeam && !winner && (
-        <div className="flex items-center justify-center gap-6 mt-2.5 pt-2 border-t border-white/5">
-          <div className="flex items-center gap-1">
-            <div className="flex gap-1">
-              {[0, 1].map((i) => (
-                <div
-                  key={`l${i}`}
-                  className="w-2 h-2 rounded-full border transition-all duration-300"
-                  style={{
-                    backgroundColor: i < finaleScore.left ? getTeamColor(leftTeam) : "transparent",
-                    borderColor: getTeamColor(leftTeam),
-                    boxShadow: i < finaleScore.left ? `0 0 8px ${getTeamColor(leftTeam)}` : "none",
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-          <span className="text-muted-foreground/60 text-[10px] font-mono font-bold">{finaleScore.left} — {finaleScore.right}</span>
-          <div className="flex items-center gap-1">
-            <div className="flex gap-1">
-              {[0, 1].map((i) => (
-                <div
-                  key={`r${i}`}
-                  className="w-2 h-2 rounded-full border transition-all duration-300"
-                  style={{
-                    backgroundColor: i < finaleScore.right ? getTeamColor(rightTeam) : "transparent",
-                    borderColor: getTeamColor(rightTeam),
-                    boxShadow: i < finaleScore.right ? `0 0 8px ${getTeamColor(rightTeam)}` : "none",
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }
@@ -249,8 +210,7 @@ export default function StreamerPage() {
       match3Winner: string | null;
       match4Winner: string | null;
       rolledMap: string | null;
-      finaleBestOf?: 1 | 3;
-      finaleScore?: { left: number; right: number };
+
       match4BestOf?: 1 | 3;
       match4Score?: { left: number; right: number };
       tiebreakerWinner?: string | null;
@@ -263,8 +223,7 @@ export default function StreamerPage() {
   const currentMatch = bracket.currentMatch;
   const rolledMap = bracket.rolledMap ?? null;
   const mapImageUrl = rolledMap ? (mapImages[rolledMap] ?? null) : null;
-  const finaleBestOf = bracket.finaleBestOf ?? 1;
-  const finaleScore = bracket.finaleScore ?? { left: 0, right: 0 };
+
 
   const currentTeams =
     currentMatch === 1 ? ["A", "B"]
@@ -314,7 +273,7 @@ export default function StreamerPage() {
               currentMatch === 3 ? "text-primary" : "text-muted-foreground/40"
             }`}>
               <span className={`w-1.5 h-1.5 rounded-full ${currentMatch === 3 ? "bg-primary animate-pulse" : "bg-muted-foreground/20"}`} />
-              FINALE {finaleBestOf === 3 ? "(BO3)" : "(BO1)"}
+              FINALE
             </div>
             {bracket.match4 && (
               <>
@@ -459,8 +418,7 @@ export default function StreamerPage() {
               winner={bracket.match3Winner}
               leftTeam={bracket.match3?.split(" ")[0] ?? null}
               rightTeam={bracket.match3?.split(" ")[2] ?? null}
-              finaleBestOf={finaleBestOf}
-              finaleScore={finaleScore}
+
             />
 
             {bracket.match4 && (
