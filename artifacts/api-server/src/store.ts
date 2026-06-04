@@ -46,6 +46,7 @@ class Store {
   playerPool: Map<string, Player> = new Map();
   bracketState: BracketState = freshBracket();
   activeServerDetails: string | null = null;
+  mapImages: Map<string, string> = new Map();
 
   addPlayer(name: string, status: PlayerStatus = "accepted"): Player {
     const id = randomUUID();
@@ -55,18 +56,9 @@ class Store {
   }
 
   addViewerPlayer(clientId: string, name: string): Player {
-    const existing = Array.from(this.playerPool.values()).find(
-      (p) => p.id === clientId
-    );
+    const existing = Array.from(this.playerPool.values()).find((p) => p.id === clientId);
     if (existing) return existing;
-    const player: Player = {
-      id: clientId,
-      name,
-      flagged: false,
-      status: "pending",
-      team: null,
-      socketId: null,
-    };
+    const player: Player = { id: clientId, name, flagged: false, status: "pending", team: null, socketId: null };
     this.playerPool.set(clientId, player);
     return player;
   }
@@ -101,83 +93,45 @@ class Store {
 
   rollTeams(): Teams {
     const accepted = this.getAllPlayers().filter((p) => p.status === "accepted");
-
     if (accepted.length < 15) {
       const needed = 15 - accepted.length;
       for (let i = 0; i < needed; i++) {
-        const filler: Player = {
-          id: randomUUID(),
-          name: `Player ${this.playerPool.size + i + 1}`,
-          flagged: false,
-          status: "accepted",
-          team: null,
-          socketId: null,
-        };
+        const filler: Player = { id: randomUUID(), name: `Spieler ${this.playerPool.size + i + 1}`, flagged: false, status: "accepted", team: null, socketId: null };
         this.playerPool.set(filler.id, filler);
         accepted.push(filler);
       }
     }
-
     const flagged = accepted.filter((p) => p.flagged);
     const unflagged = accepted.filter((p) => !p.flagged);
-
-    const shuffle = <T>(arr: T[]): T[] =>
-      arr
-        .map((v) => ({ v, sort: Math.random() }))
-        .sort((a, b) => a.sort - b.sort)
-        .map(({ v }) => v);
-
-    const shuffledFlagged = shuffle(flagged);
-    const shuffledUnflagged = shuffle(unflagged);
-
-    const teamA: Player[] = [];
-    const teamB: Player[] = [];
-    const teamC: Player[] = [];
-
-    shuffledFlagged.forEach((p, i) => {
-      const team = (["A", "B", "C"] as TeamName[])[i % 3];
-      p.team = team;
-      if (team === "A") teamA.push(p);
-      else if (team === "B") teamB.push(p);
-      else teamC.push(p);
+    const shuffle = <T>(arr: T[]): T[] => arr.map((v) => ({ v, sort: Math.random() })).sort((a, b) => a.sort - b.sort).map(({ v }) => v);
+    const sf = shuffle(flagged);
+    const su = shuffle(unflagged);
+    const tA: Player[] = [], tB: Player[] = [], tC: Player[] = [];
+    sf.forEach((p, i) => {
+      const t = (["A", "B", "C"] as TeamName[])[i % 3];
+      p.team = t;
+      if (t === "A") tA.push(p); else if (t === "B") tB.push(p); else tC.push(p);
     });
-
-    const fillTeam = (team: Player[], name: TeamName) => {
-      while (team.length < 5 && shuffledUnflagged.length > 0) {
-        const p = shuffledUnflagged.shift()!;
-        p.team = name;
-        team.push(p);
-      }
-    };
-
-    fillTeam(teamA, "A");
-    fillTeam(teamB, "B");
-    fillTeam(teamC, "C");
-
-    while (shuffledUnflagged.length > 0) {
-      const p = shuffledUnflagged.shift()!;
-      if (teamA.length < 5) { p.team = "A"; teamA.push(p); }
-      else if (teamB.length < 5) { p.team = "B"; teamB.push(p); }
-      else if (teamC.length < 5) { p.team = "C"; teamC.push(p); }
+    const fill = (t: Player[], n: TeamName) => { while (t.length < 5 && su.length > 0) { const p = su.shift()!; p.team = n; t.push(p); } };
+    fill(tA, "A"); fill(tB, "B"); fill(tC, "C");
+    while (su.length > 0) {
+      const p = su.shift()!;
+      if (tA.length < 5) { p.team = "A"; tA.push(p); } else if (tB.length < 5) { p.team = "B"; tB.push(p); } else if (tC.length < 5) { p.team = "C"; tC.push(p); }
     }
-
     this.bracketState = freshBracket();
-
-    return { A: teamA, B: teamB, C: teamC };
+    return { A: tA, B: tB, C: tC };
   }
 
   setMatchWinner(winner: TeamName): BracketState {
     const b = this.bracketState;
-
     if (b.currentMatch === 1) {
       b.match1Winner = winner;
-      if (winner === "A") {
-        b.match2 = "B vs C";
-        b.match3 = "A vs C";
-      } else {
-        b.match2 = "A vs C";
-        b.match3 = "B vs C";
-      }
+      if (winner === "A") { b.match2 = "A vs B"; b.match3 = "A vs C"; }
+      else { b.match2 = "A vs C"; b.match3 = "B vs C"; }
+      // Correct logic: if A wins Match1: M2 = B vs C, M3 = A vs (winner of M2)
+      // Re-implementing per spec: if A wins: M2=B vs C, M3=A vs C; if B wins: M2=A vs C, M3=B vs C
+      if (winner === "A") { b.match2 = "B vs C"; b.match3 = "A vs C"; }
+      else { b.match2 = "A vs C"; b.match3 = "B vs C"; }
       b.currentMatch = 2;
     } else if (b.currentMatch === 2) {
       b.match2Winner = winner;
@@ -186,7 +140,6 @@ class Store {
       b.match3Winner = winner;
       b.currentMatch = 4;
     }
-
     return b;
   }
 
@@ -200,6 +153,18 @@ class Store {
     const rolled = maps[Math.floor(Math.random() * maps.length)];
     this.bracketState.rolledMap = rolled;
     return rolled;
+  }
+
+  getMapImages(): Record<string, string> {
+    return Object.fromEntries(this.mapImages);
+  }
+
+  setMapImage(map: string, imageUrl: string): void {
+    this.mapImages.set(map, imageUrl);
+  }
+
+  deleteMapImage(map: string): boolean {
+    return this.mapImages.delete(map);
   }
 
   getCurrentMatchTeams(): TeamName[] {
@@ -221,6 +186,7 @@ class Store {
       players: this.getAllPlayers(),
       teams: this.getTeams(),
       bracket: this.bracketState,
+      mapImages: this.getMapImages(),
     };
   }
 }

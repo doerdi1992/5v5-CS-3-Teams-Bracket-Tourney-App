@@ -8,17 +8,11 @@ servers:
     description: Base API path
 tags:
   - name: health
-    description: Health operations
   - name: players
-    description: Player management
   - name: teams
-    description: Team management
   - name: bracket
-    description: Tournament bracket
   - name: maps
-    description: Map roller
   - name: server
-    description: CS2 server broadcast
 paths:
   /healthz:
     get:
@@ -37,7 +31,7 @@ paths:
     get:
       operationId: getPlayers
       tags: [players]
-      summary: Get all players in the pool
+      summary: Get all players
       responses:
         "200":
           description: Player list
@@ -71,7 +65,7 @@ paths:
     patch:
       operationId: updatePlayer
       tags: [players]
-      summary: Update player flag or status
+      summary: Update player
       parameters:
         - in: path
           name: id
@@ -113,7 +107,7 @@ paths:
     post:
       operationId: registerViewer
       tags: [players]
-      summary: Viewer self-registers to join tournament queue
+      summary: Viewer self-registers
       requestBody:
         required: true
         content:
@@ -132,7 +126,7 @@ paths:
     get:
       operationId: getTeams
       tags: [teams]
-      summary: Get current teams A, B, C
+      summary: Get current teams
       responses:
         "200":
           description: Teams
@@ -145,7 +139,7 @@ paths:
     post:
       operationId: rollTeams
       tags: [teams]
-      summary: Roll teams from accepted players
+      summary: Roll teams
       responses:
         "200":
           description: Teams rolled
@@ -158,7 +152,7 @@ paths:
     get:
       operationId: getBracket
       tags: [bracket]
-      summary: Get current bracket state
+      summary: Get bracket state
       responses:
         "200":
           description: Bracket state
@@ -171,7 +165,7 @@ paths:
     post:
       operationId: setMatchWinner
       tags: [bracket]
-      summary: Set the winner of the current match
+      summary: Set match winner
       requestBody:
         required: true
         content:
@@ -190,7 +184,7 @@ paths:
     post:
       operationId: resetBracket
       tags: [bracket]
-      summary: Reset the bracket to initial state
+      summary: Reset the bracket
       responses:
         "200":
           description: Reset bracket
@@ -203,7 +197,7 @@ paths:
     post:
       operationId: rollMap
       tags: [maps]
-      summary: Randomly roll a map from the map pool
+      summary: Roll a random map
       requestBody:
         required: true
         content:
@@ -218,11 +212,60 @@ paths:
               schema:
                 $ref: "#/components/schemas/MapRollResult"
 
+  /maps/images:
+    get:
+      operationId: getMapImages
+      tags: [maps]
+      summary: Get all custom map images
+      responses:
+        "200":
+          description: Map images dictionary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MapImages"
+    post:
+      operationId: setMapImage
+      tags: [maps]
+      summary: Set image URL for a map
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MapImagePayload"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /maps/images/{mapName}:
+    delete:
+      operationId: deleteMapImage
+      tags: [maps]
+      summary: Remove image for a map
+      parameters:
+        - in: path
+          name: mapName
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
   /server/broadcast:
     post:
       operationId: broadcastServer
       tags: [server]
-      summary: Broadcast server connection string to current match teams
+      summary: Broadcast server connection string
       requestBody:
         required: true
         content:
@@ -241,7 +284,7 @@ paths:
     get:
       operationId: getFullState
       tags: [bracket]
-      summary: Get full tournament state (players, teams, bracket, rolled map)
+      summary: Get full tournament state
       responses:
         "200":
           description: Full state
@@ -372,6 +415,20 @@ components:
         map:
           type: string
 
+    MapImages:
+      type: object
+      additionalProperties:
+        type: string
+
+    MapImagePayload:
+      type: object
+      required: [map, imageUrl]
+      properties:
+        map:
+          type: string
+        imageUrl:
+          type: string
+
     ServerBroadcastInput:
       type: object
       required: [connectionString]
@@ -390,7 +447,7 @@ components:
 
     FullState:
       type: object
-      required: [players, teams, bracket]
+      required: [players, teams, bracket, mapImages]
       properties:
         players:
           type: array
@@ -400,3 +457,5 @@ components:
           $ref: "#/components/schemas/Teams"
         bracket:
           $ref: "#/components/schemas/BracketState"
+        mapImages:
+          $ref: "#/components/schemas/MapImages"

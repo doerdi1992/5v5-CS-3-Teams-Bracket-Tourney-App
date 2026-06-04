@@ -17,7 +17,7 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
- * @summary Get all players in the pool
+ * @summary Get all players
  */
 export const GetPlayersResponseItem = zod.object({
   "id": zod.string(),
@@ -39,7 +39,7 @@ export const AddPlayersBody = zod.object({
 
 
 /**
- * @summary Update player flag or status
+ * @summary Update player
  */
 export const UpdatePlayerParams = zod.object({
   "id": zod.coerce.string()
@@ -76,7 +76,7 @@ export const DeletePlayerResponse = zod.object({
 
 
 /**
- * @summary Viewer self-registers to join tournament queue
+ * @summary Viewer self-registers
  */
 export const RegisterViewerBody = zod.object({
   "name": zod.string(),
@@ -85,7 +85,7 @@ export const RegisterViewerBody = zod.object({
 
 
 /**
- * @summary Get current teams A, B, C
+ * @summary Get current teams
  */
 export const GetTeamsResponse = zod.object({
   "A": zod.array(zod.object({
@@ -116,7 +116,7 @@ export const GetTeamsResponse = zod.object({
 
 
 /**
- * @summary Roll teams from accepted players
+ * @summary Roll teams
  */
 export const RollTeamsResponse = zod.object({
   "A": zod.array(zod.object({
@@ -147,7 +147,7 @@ export const RollTeamsResponse = zod.object({
 
 
 /**
- * @summary Get current bracket state
+ * @summary Get bracket state
  */
 export const GetBracketResponse = zod.object({
   "currentMatch": zod.number(),
@@ -162,7 +162,7 @@ export const GetBracketResponse = zod.object({
 
 
 /**
- * @summary Set the winner of the current match
+ * @summary Set match winner
  */
 export const SetMatchWinnerBody = zod.object({
   "winner": zod.enum(['A', 'B', 'C'])
@@ -181,7 +181,7 @@ export const SetMatchWinnerResponse = zod.object({
 
 
 /**
- * @summary Reset the bracket to initial state
+ * @summary Reset the bracket
  */
 export const ResetBracketResponse = zod.object({
   "currentMatch": zod.number(),
@@ -196,7 +196,7 @@ export const ResetBracketResponse = zod.object({
 
 
 /**
- * @summary Randomly roll a map from the map pool
+ * @summary Roll a random map
  */
 export const RollMapBody = zod.object({
   "maps": zod.array(zod.string())
@@ -208,7 +208,40 @@ export const RollMapResponse = zod.object({
 
 
 /**
- * @summary Broadcast server connection string to current match teams
+ * @summary Get all custom map images
+ */
+export const GetMapImagesResponse = zod.record(zod.string(), zod.string())
+
+
+/**
+ * @summary Set image URL for a map
+ */
+export const SetMapImageBody = zod.object({
+  "map": zod.string(),
+  "imageUrl": zod.string()
+})
+
+export const SetMapImageResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary Remove image for a map
+ */
+export const DeleteMapImageParams = zod.object({
+  "mapName": zod.coerce.string()
+})
+
+export const DeleteMapImageResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary Broadcast server connection string
  */
 export const BroadcastServerBody = zod.object({
   "connectionString": zod.string()
@@ -221,7 +254,7 @@ export const BroadcastServerResponse = zod.object({
 
 
 /**
- * @summary Get full tournament state (players, teams, bracket, rolled map)
+ * @summary Get full tournament state
  */
 export const GetFullStateResponse = zod.object({
   "players": zod.array(zod.object({
@@ -267,7 +300,8 @@ export const GetFullStateResponse = zod.object({
   "match2Winner": zod.string().nullable(),
   "match3Winner": zod.string().nullable(),
   "rolledMap": zod.string().nullable()
-})
+}),
+  "mapImages": zod.record(zod.string(), zod.string())
 })
 
 

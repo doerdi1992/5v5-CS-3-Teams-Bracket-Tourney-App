@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { BracketState } from './bracketState';
+import type { MapImages } from './mapImages';
 import type { Player } from './player';
 import type { Teams } from './teams';
 
@@ -13,4 +14,5 @@ export interface FullState {
   players: Player[];
   teams: Teams;
   bracket: BracketState;
+  mapImages: MapImages;
 }

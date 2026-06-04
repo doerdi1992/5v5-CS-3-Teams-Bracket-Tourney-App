@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import ViewerPage from "@/pages/viewer";
 import AdminPage from "@/pages/admin";
+import StreamerPage from "@/pages/streamer";
 import { useEffect } from "react";
 import { socket } from "@/lib/socket";
 
@@ -15,17 +16,14 @@ function SocketProvider({ children }: { children: React.ReactNode }) {
     socket.on("connect", () => {
       console.log("Socket connected");
     });
-    
     socket.on("state_update", () => {
       queryClient.invalidateQueries();
     });
-
     return () => {
       socket.off("connect");
       socket.off("state_update");
     };
   }, []);
-
   return <>{children}</>;
 }
 
@@ -34,6 +32,7 @@ function Router() {
     <Switch>
       <Route path="/" component={ViewerPage} />
       <Route path="/admin" component={AdminPage} />
+      <Route path="/streamer" component={StreamerPage} />
       <Route component={NotFound} />
     </Switch>
   );

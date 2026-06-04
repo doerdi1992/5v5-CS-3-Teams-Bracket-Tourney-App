@@ -24,6 +24,8 @@ import type {
   BulkPlayerInput,
   FullState,
   HealthStatus,
+  MapImagePayload,
+  MapImages,
   MapRollInput,
   MapRollResult,
   MatchWinnerInput,
@@ -133,7 +135,7 @@ export const getGetPlayersUrl = () => {
 }
 
 /**
- * @summary Get all players in the pool
+ * @summary Get all players
  */
 export const getPlayers = async ( options?: RequestInit): Promise<Player[]> => {
 
@@ -180,7 +182,7 @@ export type GetPlayersQueryError = ErrorType<unknown>
 
 
 /**
- * @summary Get all players in the pool
+ * @summary Get all players
  */
 
 export function useGetPlayers<TData = Awaited<ReturnType<typeof getPlayers>>, TError = ErrorType<unknown>>(
@@ -281,7 +283,7 @@ export const getUpdatePlayerUrl = (id: string,) => {
 }
 
 /**
- * @summary Update player flag or status
+ * @summary Update player
  */
 export const updatePlayer = async (id: string,
     playerUpdate: PlayerUpdate, options?: RequestInit): Promise<Player> => {
@@ -331,7 +333,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdatePlayerMutationError = ErrorType<unknown>
 
     /**
- * @summary Update player flag or status
+ * @summary Update player
  */
 export const useUpdatePlayer = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePlayer>>, TError,{id: string;data: BodyType<PlayerUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -423,7 +425,7 @@ export const getRegisterViewerUrl = () => {
 }
 
 /**
- * @summary Viewer self-registers to join tournament queue
+ * @summary Viewer self-registers
  */
 export const registerViewer = async (viewerRegistration: ViewerRegistration, options?: RequestInit): Promise<Player> => {
 
@@ -472,7 +474,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type RegisterViewerMutationError = ErrorType<unknown>
 
     /**
- * @summary Viewer self-registers to join tournament queue
+ * @summary Viewer self-registers
  */
 export const useRegisterViewer = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerViewer>>, TError,{data: BodyType<ViewerRegistration>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -494,7 +496,7 @@ export const getGetTeamsUrl = () => {
 }
 
 /**
- * @summary Get current teams A, B, C
+ * @summary Get current teams
  */
 export const getTeams = async ( options?: RequestInit): Promise<Teams> => {
 
@@ -541,7 +543,7 @@ export type GetTeamsQueryError = ErrorType<unknown>
 
 
 /**
- * @summary Get current teams A, B, C
+ * @summary Get current teams
  */
 
 export function useGetTeams<TData = Awaited<ReturnType<typeof getTeams>>, TError = ErrorType<unknown>>(
@@ -571,7 +573,7 @@ export const getRollTeamsUrl = () => {
 }
 
 /**
- * @summary Roll teams from accepted players
+ * @summary Roll teams
  */
 export const rollTeams = async ( options?: RequestInit): Promise<Teams> => {
 
@@ -619,7 +621,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type RollTeamsMutationError = ErrorType<unknown>
 
     /**
- * @summary Roll teams from accepted players
+ * @summary Roll teams
  */
 export const useRollTeams = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rollTeams>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -641,7 +643,7 @@ export const getGetBracketUrl = () => {
 }
 
 /**
- * @summary Get current bracket state
+ * @summary Get bracket state
  */
 export const getBracket = async ( options?: RequestInit): Promise<BracketState> => {
 
@@ -688,7 +690,7 @@ export type GetBracketQueryError = ErrorType<unknown>
 
 
 /**
- * @summary Get current bracket state
+ * @summary Get bracket state
  */
 
 export function useGetBracket<TData = Awaited<ReturnType<typeof getBracket>>, TError = ErrorType<unknown>>(
@@ -718,7 +720,7 @@ export const getSetMatchWinnerUrl = () => {
 }
 
 /**
- * @summary Set the winner of the current match
+ * @summary Set match winner
  */
 export const setMatchWinner = async (matchWinnerInput: MatchWinnerInput, options?: RequestInit): Promise<BracketState> => {
 
@@ -767,7 +769,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type SetMatchWinnerMutationError = ErrorType<unknown>
 
     /**
- * @summary Set the winner of the current match
+ * @summary Set match winner
  */
 export const useSetMatchWinner = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setMatchWinner>>, TError,{data: BodyType<MatchWinnerInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -789,7 +791,7 @@ export const getResetBracketUrl = () => {
 }
 
 /**
- * @summary Reset the bracket to initial state
+ * @summary Reset the bracket
  */
 export const resetBracket = async ( options?: RequestInit): Promise<BracketState> => {
 
@@ -837,7 +839,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type ResetBracketMutationError = ErrorType<unknown>
 
     /**
- * @summary Reset the bracket to initial state
+ * @summary Reset the bracket
  */
 export const useResetBracket = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetBracket>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -859,7 +861,7 @@ export const getRollMapUrl = () => {
 }
 
 /**
- * @summary Randomly roll a map from the map pool
+ * @summary Roll a random map
  */
 export const rollMap = async (mapRollInput: MapRollInput, options?: RequestInit): Promise<MapRollResult> => {
 
@@ -908,7 +910,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type RollMapMutationError = ErrorType<unknown>
 
     /**
- * @summary Randomly roll a map from the map pool
+ * @summary Roll a random map
  */
 export const useRollMap = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rollMap>>, TError,{data: BodyType<MapRollInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -921,6 +923,224 @@ export const useRollMap = <TError = ErrorType<unknown>,
       return useMutation(getRollMapMutationOptions(options));
     }
 
+export const getGetMapImagesUrl = () => {
+
+
+
+
+  return `/api/maps/images`
+}
+
+/**
+ * @summary Get all custom map images
+ */
+export const getMapImages = async ( options?: RequestInit): Promise<MapImages> => {
+
+  return customFetch<MapImages>(getGetMapImagesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMapImagesQueryKey = () => {
+    return [
+    `/api/maps/images`
+    ] as const;
+    }
+
+
+export const getGetMapImagesQueryOptions = <TData = Awaited<ReturnType<typeof getMapImages>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMapImages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMapImagesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMapImages>>> = ({ signal }) => getMapImages({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMapImages>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMapImagesQueryResult = NonNullable<Awaited<ReturnType<typeof getMapImages>>>
+export type GetMapImagesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get all custom map images
+ */
+
+export function useGetMapImages<TData = Awaited<ReturnType<typeof getMapImages>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMapImages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMapImagesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getSetMapImageUrl = () => {
+
+
+
+
+  return `/api/maps/images`
+}
+
+/**
+ * @summary Set image URL for a map
+ */
+export const setMapImage = async (mapImagePayload: MapImagePayload, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getSetMapImageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      mapImagePayload,)
+  }
+);}
+
+
+
+
+export const getSetMapImageMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setMapImage>>, TError,{data: BodyType<MapImagePayload>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setMapImage>>, TError,{data: BodyType<MapImagePayload>}, TContext> => {
+
+const mutationKey = ['setMapImage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setMapImage>>, {data: BodyType<MapImagePayload>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  setMapImage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetMapImageMutationResult = NonNullable<Awaited<ReturnType<typeof setMapImage>>>
+    export type SetMapImageMutationBody = BodyType<MapImagePayload>
+    export type SetMapImageMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Set image URL for a map
+ */
+export const useSetMapImage = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setMapImage>>, TError,{data: BodyType<MapImagePayload>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setMapImage>>,
+        TError,
+        {data: BodyType<MapImagePayload>},
+        TContext
+      > => {
+      return useMutation(getSetMapImageMutationOptions(options));
+    }
+
+export const getDeleteMapImageUrl = (mapName: string,) => {
+
+
+
+
+  return `/api/maps/images/${mapName}`
+}
+
+/**
+ * @summary Remove image for a map
+ */
+export const deleteMapImage = async (mapName: string, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getDeleteMapImageUrl(mapName),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteMapImageMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMapImage>>, TError,{mapName: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteMapImage>>, TError,{mapName: string}, TContext> => {
+
+const mutationKey = ['deleteMapImage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteMapImage>>, {mapName: string}> = (props) => {
+          const {mapName} = props ?? {};
+
+          return  deleteMapImage(mapName,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteMapImageMutationResult = NonNullable<Awaited<ReturnType<typeof deleteMapImage>>>
+
+    export type DeleteMapImageMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Remove image for a map
+ */
+export const useDeleteMapImage = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMapImage>>, TError,{mapName: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteMapImage>>,
+        TError,
+        {mapName: string},
+        TContext
+      > => {
+      return useMutation(getDeleteMapImageMutationOptions(options));
+    }
+
 export const getBroadcastServerUrl = () => {
 
 
@@ -930,7 +1150,7 @@ export const getBroadcastServerUrl = () => {
 }
 
 /**
- * @summary Broadcast server connection string to current match teams
+ * @summary Broadcast server connection string
  */
 export const broadcastServer = async (serverBroadcastInput: ServerBroadcastInput, options?: RequestInit): Promise<SuccessResponse> => {
 
@@ -979,7 +1199,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type BroadcastServerMutationError = ErrorType<unknown>
 
     /**
- * @summary Broadcast server connection string to current match teams
+ * @summary Broadcast server connection string
  */
 export const useBroadcastServer = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof broadcastServer>>, TError,{data: BodyType<ServerBroadcastInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -1001,7 +1221,7 @@ export const getGetFullStateUrl = () => {
 }
 
 /**
- * @summary Get full tournament state (players, teams, bracket, rolled map)
+ * @summary Get full tournament state
  */
 export const getFullState = async ( options?: RequestInit): Promise<FullState> => {
 
@@ -1048,7 +1268,7 @@ export type GetFullStateQueryError = ErrorType<unknown>
 
 
 /**
- * @summary Get full tournament state (players, teams, bracket, rolled map)
+ * @summary Get full tournament state
  */
 
 export function useGetFullState<TData = Awaited<ReturnType<typeof getFullState>>, TError = ErrorType<unknown>>(

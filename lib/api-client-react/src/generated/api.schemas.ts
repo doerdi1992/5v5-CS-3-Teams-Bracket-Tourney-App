@@ -125,6 +125,13 @@ export interface MapRollResult {
   map: string;
 }
 
+export interface MapImages {[key: string]: string}
+
+export interface MapImagePayload {
+  map: string;
+  imageUrl: string;
+}
+
 export interface ServerBroadcastInput {
   connectionString: string;
 }
@@ -139,5 +146,6 @@ export interface FullState {
   players: Player[];
   teams: Teams;
   bracket: BracketState;
+  mapImages: MapImages;
 }
 

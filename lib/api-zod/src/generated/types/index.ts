@@ -10,6 +10,8 @@ export * from './bracketState';
 export * from './bulkPlayerInput';
 export * from './fullState';
 export * from './healthStatus';
+export * from './mapImagePayload';
+export * from './mapImages';
 export * from './mapRollInput';
 export * from './mapRollResult';
 export * from './matchWinnerInput';

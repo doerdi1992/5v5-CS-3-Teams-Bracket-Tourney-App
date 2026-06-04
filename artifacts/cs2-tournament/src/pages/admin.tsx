@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Eye, EyeOff, Lock } from "lucide-react";
 import PlayerManagement from "@/components/player-management";
 import BracketMapRoll from "@/components/bracket-map-roll";
+import MapSetup from "@/components/map-setup";
 
 const AUTH_KEY = "cs2_admin_auth";
 
@@ -17,9 +18,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (sessionStorage.getItem(AUTH_KEY) === "1") {
-      setAuthed(true);
-    }
+    if (sessionStorage.getItem(AUTH_KEY) === "1") setAuthed(true);
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -79,16 +78,8 @@ export default function AdminPage() {
                   {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-
-              {error && (
-                <p className="font-mono text-xs text-destructive text-center tracking-wider">{error}</p>
-              )}
-
-              <Button
-                type="submit"
-                className="w-full font-mono uppercase tracking-widest"
-                disabled={!password || loading}
-              >
+              {error && <p className="font-mono text-xs text-destructive text-center tracking-wider">{error}</p>}
+              <Button type="submit" className="w-full font-mono uppercase tracking-widest" disabled={!password || loading}>
                 {loading ? "Prüfen..." : "Anmelden"}
               </Button>
             </form>
@@ -117,9 +108,10 @@ export default function AdminPage() {
         </header>
 
         <Tabs defaultValue="players" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 max-w-md mb-6 bg-card border border-border">
-            <TabsTrigger value="players" className="font-mono uppercase data-[state=active]:text-primary data-[state=active]:bg-background">Spielerverwaltung</TabsTrigger>
-            <TabsTrigger value="bracket" className="font-mono uppercase data-[state=active]:text-secondary data-[state=active]:bg-background">Bracket & Karten</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 max-w-xl mb-6 bg-card border border-border">
+            <TabsTrigger value="players" className="font-mono uppercase text-xs data-[state=active]:text-primary data-[state=active]:bg-background">Spielerverwaltung</TabsTrigger>
+            <TabsTrigger value="bracket" className="font-mono uppercase text-xs data-[state=active]:text-secondary data-[state=active]:bg-background">Bracket & Karten</TabsTrigger>
+            <TabsTrigger value="mapsetup" className="font-mono uppercase text-xs data-[state=active]:text-orange-400 data-[state=active]:bg-background">Karten-Bilder</TabsTrigger>
           </TabsList>
 
           <TabsContent value="players" className="animate-in fade-in-50 zoom-in-95 duration-200">
@@ -128,6 +120,10 @@ export default function AdminPage() {
 
           <TabsContent value="bracket" className="animate-in fade-in-50 zoom-in-95 duration-200">
             <BracketMapRoll />
+          </TabsContent>
+
+          <TabsContent value="mapsetup" className="animate-in fade-in-50 zoom-in-95 duration-200">
+            <MapSetup />
           </TabsContent>
         </Tabs>
       </div>
