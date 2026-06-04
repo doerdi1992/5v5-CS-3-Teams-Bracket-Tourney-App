@@ -162,7 +162,7 @@ export default function ViewerPage() {
                   <div className="flex justify-between items-center">
                     <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Steam64 ID (17 Stellen, für Server-Join)</label>
                     <a
-                      href="https://steamidfinder.com"
+                      href="https://steamid.xyz/"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-[9px] font-mono text-primary hover:underline flex items-center gap-0.5 transition-colors"

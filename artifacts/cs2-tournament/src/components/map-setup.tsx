@@ -41,16 +41,17 @@ export default function MapSetup() {
   const [connectionString, setConnectionString] = useState(() =>
     localStorage.getItem("cs2_connection_string") ?? ""
   );
-  const [autoSend, setAutoSend] = useState(() =>
-    localStorage.getItem("cs2_auto_send") === "1"
-  );
+  const [autoSend, setAutoSend] = useState(() => {
+    const stored = localStorage.getItem("cs2_auto_send");
+    return stored === null ? true : stored === "1";
+  });
   const [showConnection, setShowConnection] = useState(false);
 
   const [rconHost, setRconHost] = useState(() =>
     localStorage.getItem("cs2_rcon_host") ?? ""
   );
   const [rconPort, setRconPort] = useState(() =>
-    localStorage.getItem("cs2_rcon_port") ?? "27015"
+    localStorage.getItem("cs2_rcon_port") ?? ""
   );
   const [rconPassword, setRconPassword] = useState(() =>
     localStorage.getItem("cs2_rcon_password") ?? ""
@@ -58,9 +59,32 @@ export default function MapSetup() {
   const [showRconPw, setShowRconPw] = useState(false);
   const [rconStatus, setRconStatus] = useState("");
   const [isStartingMatch, setIsStartingMatch] = useState(false);
-  const [autoStartMatch, setAutoStartMatch] = useState(() =>
-    localStorage.getItem("cs2_auto_start_match") === "1"
-  );
+  const [autoStartMatch, setAutoStartMatch] = useState(() => {
+    const stored = localStorage.getItem("cs2_auto_start_match");
+    return stored === null ? true : stored === "1";
+  });
+
+  useEffect(() => {
+    const hasConn = localStorage.getItem("cs2_connection_string");
+    const hasHost = localStorage.getItem("cs2_rcon_host");
+    const hasPort = localStorage.getItem("cs2_rcon_port");
+    const hasPw = localStorage.getItem("cs2_rcon_password");
+    const adminPassword = sessionStorage.getItem("cs2_admin_password") ?? "";
+
+    fetch("/api/config/defaults", {
+      headers: {
+        "x-admin-password": adminPassword
+      }
+    })
+      .then((res) => res.json())
+      .then((defaults) => {
+        if (!hasConn && defaults.connectionString) setConnectionString(defaults.connectionString);
+        if (!hasHost && defaults.rconHost) setRconHost(defaults.rconHost);
+        if (!hasPort && defaults.rconPort) setRconPort(defaults.rconPort);
+        if (!hasPw && defaults.rconPassword) setRconPassword(defaults.rconPassword);
+      })
+      .catch((err) => console.error("Error fetching config defaults:", err));
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("cs2_connection_string", connectionString);
@@ -75,7 +99,11 @@ export default function MapSetup() {
   }, [autoStartMatch]);
 
   useEffect(() => {
-    localStorage.setItem("cs2_rcon_host", rconHost);
+    let cleanHost = rconHost.trim();
+    if (cleanHost.includes(":")) {
+      cleanHost = cleanHost.split(":")[0];
+    }
+    localStorage.setItem("cs2_rcon_host", cleanHost);
   }, [rconHost]);
 
   useEffect(() => {
@@ -92,14 +120,23 @@ export default function MapSetup() {
       return;
     }
 
+    let cleanHost = rconHost.trim();
+    if (cleanHost.includes(":")) {
+      cleanHost = cleanHost.split(":")[0];
+    }
+
     setIsStartingMatch(true);
     setRconStatus("RCON Verbindungsaufbau...");
     try {
+      const adminPassword = sessionStorage.getItem("cs2_admin_password") ?? "";
       const res = await fetch("/api/matchzy/start", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-admin-password": adminPassword
+        },
         body: JSON.stringify({
-          host: rconHost,
+          host: cleanHost,
           port: Number(rconPort),
           password: rconPassword
         }),

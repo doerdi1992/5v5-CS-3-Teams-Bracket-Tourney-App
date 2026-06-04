@@ -3,6 +3,7 @@ import { store } from "../store.js";
 import { Rcon } from "../lib/rcon.js";
 import fs from "fs";
 import path from "path";
+import { checkAdminAuth } from "../middlewares/auth.js";
 
 const router: IRouter = Router();
 
@@ -85,7 +86,7 @@ router.get("/matchzy/active-match.json", (_req, res) => {
  * POST /api/matchzy/start
  * Connects to the CS2 server RCON and sends the command to pull match configuration
  */
-router.post("/matchzy/start", async (req, res) => {
+router.post("/matchzy/start", checkAdminAuth, async (req, res) => {
   const { host, port, password, appUrl } = req.body as {
     host?: string;
     port?: number;
@@ -98,15 +99,20 @@ router.post("/matchzy/start", async (req, res) => {
     return;
   }
 
+  let finalHost = host.trim();
+  if (finalHost.includes(":")) {
+    finalHost = finalHost.split(":")[0];
+  }
+
   // Determine host URL (fallback to request headers)
   const finalAppUrl = appUrl || `${req.protocol}://${req.get("host")}`;
   const configUrl = `${finalAppUrl}/api/matchzy/active-match.json`;
   const cmd = `matchzy_loadmatch_url "${configUrl}"`;
 
-  console.log(`Sending RCON command to ${host}:${port}: ${cmd}`);
+  console.log(`Sending RCON command to ${finalHost}:${port}: ${cmd}`);
 
   try {
-    const output = await Rcon.send(host, Number(port), password, cmd);
+    const output = await Rcon.send(finalHost, Number(port), password, cmd);
     res.json({ success: true, command: cmd, output });
   } catch (e: any) {
     console.error("RCON Error:", e);

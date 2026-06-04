@@ -51,7 +51,11 @@ class Store {
   playerPool: Map<string, Player> = new Map();
   bracketState: BracketState = freshBracket();
   activeServerDetails: string | null = null;
-  mapImages: Map<string, string> = new Map();
+  mapImages: Map<string, string> = new Map([
+    ["Cache", "https://static.wikia.nocookie.net/cswikia/images/5/5b/De_cache_cs2.png/revision/latest?cb=20260429100503"],
+    ["Cobblestone", "https://static.wikia.nocookie.net/cswikia/images/b/bc/De_cbble_s2.png/revision/latest?cb=20230701154412"],
+    ["Mirage", "https://static.wikia.nocookie.net/cswikia/images/f/f5/De_mirage_cs2.png/revision/latest?cb=20230807124319"]
+  ]);
 
   addPlayer(name: string, status: PlayerStatus = "accepted", steamId?: string): Player {
     const id = randomUUID();

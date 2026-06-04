@@ -78,7 +78,7 @@ export default function BracketMapRoll() {
 
   // ── localStorage-backed state ──────────────────────────────────────────────
   const [mapPool, setMapPool] = useState(() =>
-    localStorage.getItem("cs2_map_pool") ?? "Cache\nMirage\nCobblestone"
+    localStorage.getItem("cs2_map_pool") ?? "Mirage\nCache\nCobblestone"
   );
 
   const [isSpinning, setIsSpinning] = useState(false);
@@ -211,14 +211,21 @@ export default function BracketMapRoll() {
 
           // Auto-start match on CS2 server via RCON
           const lsAutoStart = localStorage.getItem("cs2_auto_start_match") === "1";
-          const rconHost = localStorage.getItem("cs2_rcon_host") ?? "";
-          const rconPort = localStorage.getItem("cs2_rcon_port") ?? "27015";
+          let rconHost = localStorage.getItem("cs2_rcon_host") ?? "";
+          if (rconHost.includes(":")) {
+            rconHost = rconHost.split(":")[0];
+          }
+          const rconPort = localStorage.getItem("cs2_rcon_port") ?? "";
           const rconPassword = localStorage.getItem("cs2_rcon_password") ?? "";
 
           if (lsAutoStart && rconHost && rconPort && rconPassword) {
+            const adminPassword = sessionStorage.getItem("cs2_admin_password") ?? "";
             fetch("/api/matchzy/start", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: { 
+                "Content-Type": "application/json",
+                "x-admin-password": adminPassword
+              },
               body: JSON.stringify({
                 host: rconHost,
                 port: Number(rconPort),

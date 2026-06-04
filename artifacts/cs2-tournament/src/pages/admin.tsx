@@ -34,6 +34,7 @@ export default function AdminPage() {
       });
       if (res.ok) {
         sessionStorage.setItem(AUTH_KEY, "1");
+        sessionStorage.setItem("cs2_admin_password", password);
         setAuthed(true);
       } else {
         const data = await res.json() as { message?: string };
