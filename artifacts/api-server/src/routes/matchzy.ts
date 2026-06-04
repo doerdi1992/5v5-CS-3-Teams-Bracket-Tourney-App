@@ -69,17 +69,39 @@ export function generateMatchConfig() {
   const matchId = `match_${b.currentMatch}_${Date.now()}`;
 
   // Determine how many maps this match plays
-  // For tiebreaker BO3 (match 4 with match4BestOf === 3), num_maps = 3
   let numMaps = 1;
   let maplist = [resolvedMap];
+  let mapSides = ["knife"];
   let skipVeto = true;
 
   if (b.currentMatch === 4 && b.match4BestOf === 3) {
+    // BO3 Tiebreaker: pull all maps from the map pool, shuffle, pick 3
+    const allPoolMaps = Array.from(store.mapImages.keys()); // e.g. ["Cache", "Cobblestone", "Mirage"]
+    
+    // Shuffle the pool
+    const shuffled = allPoolMaps
+      .map((m) => ({ m, sort: Math.random() }))
+      .sort((a, b) => a.sort - b.sort)
+      .map(({ m }) => m);
+
+    // Resolve all maps through the registry (Cache -> de_cache, etc.)
+    const resolvedAll = shuffled.map((m) => resolveMapPath(m));
+
+    // We need exactly 3 maps — if pool has fewer, repeat; if more, slice
+    if (resolvedAll.length >= 3) {
+      maplist = resolvedAll.slice(0, 3);
+    } else if (resolvedAll.length === 2) {
+      maplist = [resolvedAll[0], resolvedAll[1], resolvedAll[0]];
+    } else {
+      // Only 1 map in pool — play the same map 3 times
+      maplist = [resolvedAll[0] || resolvedMap, resolvedAll[0] || resolvedMap, resolvedAll[0] || resolvedMap];
+    }
+
     numMaps = 3;
-    // For BO3 we need 3 maps — use the rolled map + 2 others from the registry
-    // The rolled map is Map 1, MatchZy will handle the rest via veto or we pre-fill
-    skipVeto = true; // still skip veto, we pick all maps
-    maplist = [resolvedMap]; // MatchZy will play this map for all 3 games if only 1 provided
+    skipVeto = true;
+    mapSides = ["knife", "knife", "knife"]; // knife round for each map
+
+    console.log(`[MatchZy] BO3 Tiebreaker — Maps: ${maplist.join(", ")}`);
   }
 
   return {
@@ -94,7 +116,7 @@ export function generateMatchConfig() {
       min_players_to_ready: 1,
       min_spectators_to_ready: 0,
       clinch_series: true,
-      map_sides: ["knife"],
+      map_sides: mapSides,
       team1: {
         name: `TEAM ${t1Letter}`,
         players: team1PlayersMap
