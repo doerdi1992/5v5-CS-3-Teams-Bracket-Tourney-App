@@ -193,6 +193,20 @@ export async function runMatchzyStartSequence(rolledMapName?: string): Promise<{
     const remoteDir = settings.ftpDir || "game/csgo/MatchZy/";
     const remotePath = remoteDir.endsWith("/") ? `${remoteDir}match_${matchId}.json` : `${remoteDir}/match_${matchId}.json`;
 
+    // Determine the path relative to the csgo/ folder for the RCON command
+    let relativeMatchPath = `match_${matchId}.json`;
+    const csgoIndex = remoteDir.indexOf("csgo/");
+    if (csgoIndex !== -1) {
+      const subPath = remoteDir.substring(csgoIndex + 5);
+      relativeMatchPath = subPath.endsWith("/") ? `${subPath}match_${matchId}.json` : `${subPath}/match_${matchId}.json`;
+    } else {
+      relativeMatchPath = remoteDir.endsWith("/") ? `${remoteDir}match_${matchId}.json` : `${remoteDir}/match_${matchId}.json`;
+    }
+    // Clean any leading slashes
+    if (relativeMatchPath.startsWith("/")) {
+      relativeMatchPath = relativeMatchPath.substring(1);
+    }
+
     console.log(`[MatchZy Pipeline] Upload gestartet -> match_${matchId}.json zu ${ftpHost}:${ftpPort}`);
     try {
       await FtpClient.upload({
@@ -221,7 +235,7 @@ export async function runMatchzyStartSequence(rolledMapName?: string): Promise<{
     await new Promise((resolve) => setTimeout(resolve, 6000));
 
     // Connect and execute MatchZy loadmatch command
-    const loadCmd = `matchzy_loadmatch "match_${matchId}.json"`;
+    const loadCmd = `matchzy_loadmatch "${relativeMatchPath}"`;
     console.log(`[MatchZy Pipeline] Sende Befehl -> ${loadCmd}`);
     const output = await sendRconWithRetry(finalHost, port, password, loadCmd);
 

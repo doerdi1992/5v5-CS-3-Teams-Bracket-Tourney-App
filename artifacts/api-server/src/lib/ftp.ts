@@ -38,9 +38,13 @@ export class FtpClient {
         console.log(`[FTP] Command connection established.`);
       });
 
+      let buffer = "";
       client.on("data", (data) => {
-        const lines = data.toString().split("\r\n");
-        for (const line of lines) {
+        buffer += data.toString();
+        let idx;
+        while ((idx = buffer.indexOf("\r\n")) !== -1) {
+          const line = buffer.substring(0, idx);
+          buffer = buffer.substring(idx + 2);
           if (!line.trim()) continue;
           console.log(`[FTP Server] ${line}`);
           const code = parseInt(line.substring(0, 3));

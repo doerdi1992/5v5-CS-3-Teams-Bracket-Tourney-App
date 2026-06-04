@@ -38,7 +38,7 @@ export default function PlayerManagement() {
   const rollTeamsMut = useRollTeams();
 
   const handleBulkAdd = () => {
-    const names = bulkInput.split("\n").map((n) => n.trim()).filter((n) => n);
+    const names = bulkInput.split(/[\n,;]+/).map((n) => n.trim()).filter((n) => n);
     if (!names.length) return;
     addPlayersMut.mutate(
       { data: { names } },
@@ -54,6 +54,7 @@ export default function PlayerManagement() {
       }
     );
   };
+
 
   const handleAddSingle = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,30 +172,30 @@ export default function PlayerManagement() {
                 {(["A", "B", "C"] as const).map((t) => (
                   <div
                     key={t}
-                    className="border border-border/50 rounded-xl p-4 bg-background/40 flex flex-col justify-between min-h-[220px]"
+                    className="border border-border/50 rounded-xl p-5 bg-background/40 flex flex-col justify-between min-h-[280px] shadow-lg"
                   >
                     <div>
-                      <div className="font-mono text-secondary font-bold mb-3 flex items-center justify-between border-b border-white/5 pb-2">
+                      <div className="font-mono text-secondary font-black text-2xl mb-4 flex items-center justify-between border-b border-white/10 pb-3">
                         <span>TEAM {t}</span>
-                        <Badge variant="outline" className="text-[10px] font-mono border-secondary/30 text-secondary">
+                        <Badge variant="outline" className="text-xs font-mono border-secondary/40 text-secondary px-2 py-0.5">
                           {teams[t].length}/5
                         </Badge>
                       </div>
-                      <div className="space-y-1.5">
+                      <div className="space-y-2">
                         {teams[t].map((p) => (
                           <div
                             key={p.id}
-                            className={`flex items-center justify-between px-3 py-1.5 rounded-lg bg-black/20 border border-white/5 ${
+                            className={`flex items-center justify-between px-4 py-2.5 rounded-xl bg-black/30 border border-white/5 shadow-inner ${
                               p.flagged ? "border-destructive/30 bg-destructive/5" : ""
                             }`}
                           >
-                            <span className="font-mono text-xs font-semibold truncate max-w-[110px] text-foreground/90">
+                            <span className="font-mono text-sm md:text-base font-bold truncate max-w-[160px] text-foreground">
                               {p.name}
                             </span>
                             {p.flagged && (
                               <Badge
                                 variant="destructive"
-                                className="text-[8px] font-black font-mono px-1 py-0 h-4 uppercase tracking-wider scale-95"
+                                className="text-[10px] font-black font-mono px-1.5 py-0.5 uppercase tracking-wider scale-95"
                               >
                                 GOAT
                               </Badge>
@@ -202,7 +203,7 @@ export default function PlayerManagement() {
                           </div>
                         ))}
                         {teams[t].length === 0 && (
-                          <div className="text-center font-mono text-[10px] text-muted-foreground/40 py-8">
+                          <div className="text-center font-mono text-xs text-muted-foreground/40 py-12">
                             Leer
                           </div>
                         )}
@@ -406,12 +407,12 @@ export default function PlayerManagement() {
 
               {/* Part B: Bulk Import */}
               <div className="space-y-3 p-4 bg-background/30 rounded-lg border border-border/40">
-                <h4 className="font-mono text-xs text-secondary font-bold uppercase tracking-wider">Massen-Import (Namen-Liste)</h4>
-                <Textarea
-                  placeholder="Spielernamen einfügen (einer pro Zeile)..."
+                <h4 className="font-mono text-xs text-secondary font-bold uppercase tracking-wider">Massen-Import (Kommagetrennt oder Zeilenweise)</h4>
+                <Input
+                  placeholder="Spielernamen eingeben (z.B. Spieler1, Spieler2, Spieler3)..."
                   value={bulkInput}
                   onChange={(e) => setBulkInput(e.target.value)}
-                  className="font-mono bg-background/50 min-h-[100px] text-sm"
+                  className="font-mono bg-background/50 text-sm h-9"
                 />
                 <Button
                   onClick={handleBulkAdd}
