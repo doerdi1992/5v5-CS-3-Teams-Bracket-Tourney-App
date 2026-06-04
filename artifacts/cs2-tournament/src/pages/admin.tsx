@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Eye, EyeOff, Lock, Settings } from "lucide-react";
+import { Eye, EyeOff, Lock, Settings, Users, Swords, ExternalLink, LogOut } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import PlayerManagement from "@/components/player-management";
 import BracketMapRoll from "@/components/bracket-map-roll";
@@ -54,28 +54,37 @@ export default function AdminPage() {
     }
   };
 
+  // ─── LOGIN SCREEN ──────────────────────────────────────────
   if (!authed) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
-        <Card className="w-full max-w-sm border-primary/30 bg-card/80 backdrop-blur">
-          <CardHeader className="text-center space-y-2 pb-2">
-            <div className="flex justify-center mb-2">
-              <div className="w-12 h-12 rounded-full border-2 border-primary/40 flex items-center justify-center bg-primary/10">
-                <Lock className="w-6 h-6 text-primary" />
+      <div className="min-h-screen bg-[#0a0e1a] text-foreground flex items-center justify-center p-6 relative overflow-hidden">
+        {/* Background ambient */}
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-primary/8 rounded-full blur-[150px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[200px] bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none" />
+
+        <Card className="w-full max-w-sm border-primary/20 bg-[#0f1525]/80 backdrop-blur-xl shadow-[0_8px_40px_rgba(0,0,0,0.5)]">
+          <CardHeader className="text-center space-y-3 pb-2">
+            <div className="flex justify-center mb-1">
+              <div className="w-14 h-14 rounded-2xl border border-primary/30 flex items-center justify-center bg-gradient-to-br from-primary/20 to-orange-600/10 shadow-[0_0_20px_rgba(249,115,22,0.15)]">
+                <Lock className="w-7 h-7 text-primary" />
               </div>
             </div>
-            <CardTitle className="font-mono text-2xl text-primary tracking-widest uppercase">Admin-Zugang</CardTitle>
-            <CardDescription className="font-mono text-xs uppercase tracking-widest">Passwort erforderlich</CardDescription>
+            <CardTitle className="font-mono text-xl text-primary tracking-[0.2em] uppercase font-black">
+              Turnier-Konsole
+            </CardTitle>
+            <CardDescription className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground/70">
+              Passwort erforderlich
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4 mt-4">
+            <form onSubmit={handleLogin} className="space-y-4 mt-2">
               <div className="relative">
                 <Input
                   type={showPw ? "text" : "password"}
                   placeholder="Passwort eingeben..."
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="font-mono pr-10 bg-background/60 border-border/60 focus-visible:ring-primary"
+                  className="font-mono pr-10 bg-black/40 border-border/40 focus-visible:ring-primary/50 h-11"
                   autoComplete="current-password"
                 />
                 <button
@@ -88,7 +97,11 @@ export default function AdminPage() {
                 </button>
               </div>
               {error && <p className="font-mono text-xs text-destructive text-center tracking-wider">{error}</p>}
-              <Button type="submit" className="w-full font-mono uppercase tracking-widest" disabled={!password || loading}>
+              <Button
+                type="submit"
+                className="w-full font-mono uppercase tracking-[0.2em] h-11 bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-500 text-white shadow-[0_4px_20px_rgba(249,115,22,0.3)]"
+                disabled={!password || loading}
+              >
                 {loading ? "Prüfen..." : "Anmelden"}
               </Button>
             </form>
@@ -98,82 +111,100 @@ export default function AdminPage() {
     );
   }
 
+  // ─── TURNIER KONSOLE ───────────────────────────────────────
   return (
-    <div className="min-h-screen bg-background text-foreground p-6 relative overflow-x-hidden">
-      {/* Decorative ambient background glows */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[250px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute top-0 right-1/4 w-[500px] h-[250px] bg-secondary/5 rounded-full blur-[120px] pointer-events-none" />
+    <div className="min-h-screen bg-[#0a0e1a] text-foreground p-4 md:p-6 relative overflow-x-hidden">
+      {/* Background ambient glows */}
+      <div className="absolute top-0 left-1/4 w-[500px] h-[250px] bg-primary/6 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute top-0 right-1/4 w-[400px] h-[200px] bg-cyan-500/4 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 left-1/2 w-[600px] h-[200px] bg-purple-500/3 rounded-full blur-[150px] pointer-events-none" />
 
-      <div className="max-w-6xl mx-auto space-y-6 relative z-10">
-        <header className="relative w-full rounded-2xl glass p-6 mb-8 border border-primary/20 overflow-hidden shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
-          {/* Subtle top accent line */}
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+      <div className="max-w-6xl mx-auto space-y-5 relative z-10">
+        {/* ── Header ────────────────────────────────────────── */}
+        <header className="relative w-full rounded-xl bg-[#0f1525]/60 backdrop-blur-xl p-5 border border-white/[0.06] overflow-hidden shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
+          {/* Top accent */}
+          <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6 relative z-10">
-            {/* Title block */}
-            <div className="text-center sm:text-left space-y-1">
-              <div className="flex items-center justify-center sm:justify-start gap-2">
-                <div className={`w-2 h-2 rounded-full ${role === "admin" ? "bg-red-500 shadow-[0_0_8px_#ef4444]" : "bg-purple-500 shadow-[0_0_8px_#a855f7]"} animate-pulse`} />
-                <span className={`text-[10px] font-mono tracking-widest ${role === "admin" ? "text-red-500" : "text-purple-500"} uppercase font-black`}>
-                  {role === "admin" ? "Admin Mode" : "Streamer Mode"}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
+            {/* Title */}
+            <div className="text-center sm:text-left">
+              <div className="flex items-center justify-center sm:justify-start gap-2 mb-1">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981] animate-pulse" />
+                <span className="text-[9px] font-mono tracking-[0.2em] text-emerald-500/80 uppercase font-bold">
+                  Live System
                 </span>
               </div>
-              <h1 className="text-2xl md:text-3xl font-black tracking-wider text-primary font-mono uppercase bg-gradient-to-r from-primary via-orange-400 to-primary bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(249,115,22,0.25)]">
-                TURNIER_KONSOLE
+              <h1 className="text-xl md:text-2xl font-black tracking-[0.15em] font-mono uppercase text-white/90">
+                Janaxf <span className="text-primary">5v5</span> CS2 Turnier
               </h1>
-              <p className="text-muted-foreground font-mono uppercase text-[10px] tracking-[0.15em]">
-                Janaxf 5v5 CS2 Turnier-Verwaltung
-              </p>
             </div>
 
-            {/* Action buttons */}
-            <div className="flex items-center gap-3">
+            {/* Action bar */}
+            <div className="flex items-center gap-2">
+              {/* Streamer OBS Link */}
+              <a href="/streamer" target="_blank" rel="noopener noreferrer">
+                <Button variant="ghost" size="sm" className="font-mono text-[10px] uppercase tracking-wider gap-1.5 h-8 text-muted-foreground/60 hover:text-cyan-400 hover:bg-cyan-500/5">
+                  <ExternalLink className="w-3 h-3" />
+                  OBS
+                </Button>
+              </a>
+
+              {/* Settings (admin only) */}
               {role === "admin" && (
                 <Sheet>
                   <SheetTrigger asChild>
-                    <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 h-9 px-4 border-border/60 hover:border-primary/50 hover:bg-primary/5 transition-all">
-                      <Settings className="w-4 h-4 text-muted-foreground" />
-                      Einstellungen
+                    <Button variant="ghost" size="sm" className="font-mono text-[10px] uppercase tracking-wider gap-1.5 h-8 text-muted-foreground/60 hover:text-primary hover:bg-primary/5">
+                      <Settings className="w-3.5 h-3.5" />
+                      Setup
                     </Button>
                   </SheetTrigger>
-                  <SheetContent className="sm:max-w-2xl w-[600px] overflow-y-auto bg-background border-l border-border p-6">
+                  <SheetContent className="sm:max-w-2xl w-[600px] overflow-y-auto bg-[#0a0e1a] border-l border-white/[0.06] p-6">
                     <SheetHeader className="mb-6">
-                      <SheetTitle className="font-mono text-xl uppercase text-primary">Einstellungen</SheetTitle>
+                      <SheetTitle className="font-mono text-xl uppercase text-primary tracking-wider">Server & Einstellungen</SheetTitle>
                     </SheetHeader>
                     <MapSetup />
                   </SheetContent>
                 </Sheet>
               )}
 
+              {/* Logout */}
               <Button
                 variant="ghost"
                 size="sm"
-                className="font-mono text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-9 px-4 transition-all"
+                className="font-mono text-[10px] uppercase tracking-wider gap-1.5 h-8 text-muted-foreground/40 hover:text-red-400 hover:bg-red-500/5"
                 onClick={() => { sessionStorage.removeItem(AUTH_KEY); setAuthed(false); }}
               >
-                Abmelden
+                <LogOut className="w-3.5 h-3.5" />
               </Button>
             </div>
           </div>
-          
-          {/* Decorative tactical watermark background */}
-          <div className="absolute right-4 bottom-0 opacity-[0.03] pointer-events-none select-none text-[80px] font-mono font-black tracking-widest leading-none">
-            HQ
-          </div>
         </header>
 
-        <Tabs defaultValue="players" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 max-w-md mb-6 bg-card border border-border">
-            <TabsTrigger value="players" className="font-mono uppercase text-xs data-[state=active]:text-primary data-[state=active]:bg-background">Spielerverwaltung</TabsTrigger>
-            <TabsTrigger value="bracket" className="font-mono uppercase text-xs data-[state=active]:text-secondary data-[state=active]:bg-background">Bracket & Karten</TabsTrigger>
+        {/* ── Tabs ───────────────────────────────────────────── */}
+        <Tabs defaultValue="bracket" className="w-full">
+          <TabsList className="w-full max-w-lg mx-auto grid grid-cols-2 mb-5 bg-[#0f1525]/60 backdrop-blur border border-white/[0.06] rounded-lg h-10">
+            <TabsTrigger
+              value="bracket"
+              className="font-mono uppercase text-[11px] tracking-wider gap-1.5 rounded-md data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_12px_rgba(249,115,22,0.1)]"
+            >
+              <Swords className="w-3.5 h-3.5" />
+              Bracket & Karten
+            </TabsTrigger>
+            <TabsTrigger
+              value="players"
+              className="font-mono uppercase text-[11px] tracking-wider gap-1.5 rounded-md data-[state=active]:bg-cyan-500/10 data-[state=active]:text-cyan-400 data-[state=active]:shadow-[0_0_12px_rgba(6,182,212,0.1)]"
+            >
+              <Users className="w-3.5 h-3.5" />
+              Spielerverwaltung
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="players" className="animate-in fade-in-50 zoom-in-95 duration-200">
-            <PlayerManagement />
+          <TabsContent value="bracket" className="animate-in fade-in-50 slide-in-from-bottom-2 duration-300">
+            <BracketMapRoll />
           </TabsContent>
 
-          <TabsContent value="bracket" className="animate-in fade-in-50 zoom-in-95 duration-200">
-            <BracketMapRoll />
+          <TabsContent value="players" className="animate-in fade-in-50 slide-in-from-bottom-2 duration-300">
+            <PlayerManagement />
           </TabsContent>
         </Tabs>
       </div>
