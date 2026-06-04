@@ -246,22 +246,13 @@ export async function runMatchzyStartSequence(rolledMapName?: string): Promise<{
     }
     const ftpHost = settings.ftpHost || finalHost;
     const ftpPort = settings.ftpPort || 21;
-    const remoteDir = settings.ftpDir || "game/csgo/MatchZy/";
-    const remotePath = remoteDir.endsWith("/") ? `${remoteDir}match_${matchId}.json` : `${remoteDir}/match_${matchId}.json`;
+    const remoteDir = settings.ftpDir || "p3611/";
+    const fileName = `match_${matchId}.json`;
+    const remotePath = remoteDir.endsWith("/") ? `${remoteDir}${fileName}` : `${remoteDir}/${fileName}`;
 
-    // Determine the path relative to the csgo/ folder for the RCON command
-    let relativeMatchPath = `match_${matchId}.json`;
-    const csgoIndex = remoteDir.indexOf("csgo/");
-    if (csgoIndex !== -1) {
-      const subPath = remoteDir.substring(csgoIndex + 5);
-      relativeMatchPath = subPath.endsWith("/") ? `${subPath}match_${matchId}.json` : `${subPath}/match_${matchId}.json`;
-    } else {
-      relativeMatchPath = remoteDir.endsWith("/") ? `${remoteDir}match_${matchId}.json` : `${remoteDir}/match_${matchId}.json`;
-    }
-    // Clean any leading slashes
-    if (relativeMatchPath.startsWith("/")) {
-      relativeMatchPath = relativeMatchPath.substring(1);
-    }
+    // For matchzy_loadmatch, the path is relative to the csgo root
+    // On fshost, p3611/ IS the csgo root, so the RCON path is just the filename
+    const relativeMatchPath = fileName;
 
     console.log(`[MatchZy Pipeline] Upload gestartet -> match_${matchId}.json zu ${ftpHost}:${ftpPort}`);
     try {
