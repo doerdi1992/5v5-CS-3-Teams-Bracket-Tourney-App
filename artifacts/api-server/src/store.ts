@@ -43,15 +43,20 @@ export interface BracketState {
   match1: string | null;
   match2: string | null;
   match3: string | null;
+  match4: string | null;
   match1Winner: string | null;
   match2Winner: string | null;
   match3Winner: string | null;
+  match4Winner: string | null;
   rolledMap: string | null;
   finaleBestOf: 1 | 3;
   finaleScore: { left: number; right: number };
+  match4BestOf: 1 | 3;
+  match4Score: { left: number; right: number };
   match1Rounds?: { left: number; right: number } | null;
   match2Rounds?: { left: number; right: number } | null;
   match3Rounds?: { left: number; right: number } | null;
+  match4Rounds?: { left: number; right: number } | null;
 }
 
 function freshBracket(): BracketState {
@@ -60,15 +65,20 @@ function freshBracket(): BracketState {
     match1: "A vs B",
     match2: null,
     match3: null,
+    match4: null,
     match1Winner: null,
     match2Winner: null,
     match3Winner: null,
+    match4Winner: null,
     rolledMap: null,
     finaleBestOf: 1,
     finaleScore: { left: 0, right: 0 },
+    match4BestOf: 1,
+    match4Score: { left: 0, right: 0 },
     match1Rounds: null,
     match2Rounds: null,
     match3Rounds: null,
+    match4Rounds: null,
   };
 }
 
@@ -253,10 +263,6 @@ class Store {
     if (b.currentMatch === 1) {
       b.match1Winner = winner;
       b.match1Rounds = rounds || null;
-      if (winner === "A") { b.match2 = "A vs B"; b.match3 = "A vs C"; }
-      else { b.match2 = "A vs C"; b.match3 = "B vs C"; }
-      // Correct logic: if A wins Match1: M2 = B vs C, M3 = A vs (winner of M2)
-      // Re-implementing per spec: if A wins: M2=B vs C, M3=A vs C; if B wins: M2=A vs C, M3=B vs C
       if (winner === "A") { b.match2 = "B vs C"; b.match3 = "A vs C"; }
       else { b.match2 = "A vs C"; b.match3 = "B vs C"; }
       b.currentMatch = 2;
@@ -283,16 +289,75 @@ class Store {
         // Check if someone reached 2 wins
         if (b.finaleScore.left >= 2 || b.finaleScore.right >= 2) {
           b.match3Winner = winner;
-          b.currentMatch = 4;
+          this.evaluatePostMatch3(b);
         }
         // Otherwise stay on match 3 for next sub-game
       } else {
         b.match3Winner = winner;
         b.match3Rounds = rounds || null;
-        b.currentMatch = 4;
+        this.evaluatePostMatch3(b);
+      }
+    } else if (b.currentMatch === 4) {
+      if (b.match4BestOf === 3) {
+        // BO3 for Tiebreaker
+        const tiebreakerTeams = this.getTiebreakerTeams();
+        if (winner === tiebreakerTeams[0]) {
+          b.match4Score.left++;
+        } else {
+          b.match4Score.right++;
+        }
+        if (rounds) {
+          b.match4Rounds = {
+            left: (b.match4Rounds?.left || 0) + rounds.left,
+            right: (b.match4Rounds?.right || 0) + rounds.right,
+          };
+        }
+        if (b.match4Score.left >= 2 || b.match4Score.right >= 2) {
+          b.match4Winner = winner;
+          b.currentMatch = 5; // Finished
+        }
+      } else {
+        b.match4Winner = winner;
+        b.match4Rounds = rounds || null;
+        b.currentMatch = 5; // Finished
       }
     }
     return b;
+  }
+
+  evaluatePostMatch3(b: BracketState) {
+    const wins = { A: 0, B: 0, C: 0 };
+    if (b.match1Winner) wins[b.match1Winner as TeamName]++;
+    if (b.match2Winner) wins[b.match2Winner as TeamName]++;
+    if (b.match3Winner) wins[b.match3Winner as TeamName]++;
+
+    if (wins.A === 1 && wins.B === 1 && wins.C === 1) {
+      // Three-way tie!
+      // Find the two teams with the most rounds across matches 1, 2, and 3
+      const rounds = { A: 0, B: 0, C: 0 };
+      const addMatchRounds = (matchStr: string | null, roundsObj: { left: number; right: number } | null | undefined) => {
+        if (!matchStr || !roundsObj) return;
+        const parts = matchStr.split(" ");
+        if (parts.length >= 3) {
+          const leftTeam = parts[0] as TeamName;
+          const rightTeam = parts[2] as TeamName;
+          rounds[leftTeam] += roundsObj.left;
+          rounds[rightTeam] += roundsObj.right;
+        }
+      };
+
+      addMatchRounds(b.match1, b.match1Rounds);
+      addMatchRounds(b.match2, b.match2Rounds);
+      addMatchRounds(b.match3, b.match3Rounds);
+
+      const sorted = (["A", "B", "C"] as TeamName[]).sort((x, y) => rounds[y] - rounds[x]);
+      const team1 = sorted[0];
+      const team2 = sorted[1];
+      b.match4 = `${team1} vs ${team2}`;
+      b.currentMatch = 4; // Move to tiebreaker match
+    } else {
+      b.currentMatch = 5; // Finished
+    }
   }
 
   resetBracket(): BracketState {
@@ -334,6 +399,9 @@ class Store {
       if (b.match1Winner === "A") return ["A", "C"];
       return ["B", "C"];
     }
+    if (b.currentMatch === 4) {
+      return this.getTiebreakerTeams();
+    }
     return [];
   }
 
@@ -346,15 +414,29 @@ class Store {
     return this.getCurrentMatchTeams();
   }
 
+  getTiebreakerTeams(): TeamName[] {
+    const b = this.bracketState;
+    if (b.match4) {
+      const parts = b.match4.split(" ");
+      if (parts.length >= 3) return [parts[0] as TeamName, parts[2] as TeamName];
+    }
+    return [];
+  }
+
   setFinaleBestOf(value: 1 | 3): void {
     this.bracketState.finaleBestOf = value;
     this.bracketState.finaleScore = { left: 0, right: 0 };
-    // Don't reset match3Winner if already set
+  }
+
+  setTiebreakerBestOf(value: 1 | 3): void {
+    this.bracketState.match4BestOf = value;
+    this.bracketState.match4Score = { left: 0, right: 0 };
   }
 
   getTiebreakerWinner(): { team: TeamName; rounds: Record<TeamName, number> } | null {
     const b = this.bracketState;
-    if (b.currentMatch >= 4 && b.match1Winner && b.match2Winner && b.match3Winner) {
+    // Tiebreaker calculation is active if the matches 1, 2, and 3 are completed and we have a 3-way tie.
+    if (b.match1Winner && b.match2Winner && b.match3Winner) {
       const wins = { A: 0, B: 0, C: 0 };
       wins[b.match1Winner as TeamName]++;
       wins[b.match2Winner as TeamName]++;
@@ -377,17 +459,7 @@ class Store {
         addMatchRounds(b.match2, b.match2Rounds);
         addMatchRounds(b.match3, b.match3Rounds);
 
-        let bestTeam: TeamName = "A";
-        let maxRounds = rounds.A;
-        if (rounds.B > maxRounds) {
-          bestTeam = "B";
-          maxRounds = rounds.B;
-        }
-        if (rounds.C > maxRounds) {
-          bestTeam = "C";
-          maxRounds = rounds.C;
-        }
-        return { team: bestTeam, rounds };
+        return { team: b.match4Winner as TeamName, rounds };
       }
     }
     return null;

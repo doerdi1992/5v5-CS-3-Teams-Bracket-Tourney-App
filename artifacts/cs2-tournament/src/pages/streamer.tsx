@@ -237,18 +237,24 @@ export default function StreamerPage() {
     );
   }
 
-  const { bracket, teams = { A: [], B: [], C: [] }, mapImages = {} } = fullState as {
+  const { bracket, teams = { A: [], B: [], C: [] }, mapImages = {} } = (fullState as any) as {
     bracket: {
       currentMatch: number;
       match1: string | null;
       match2: string | null;
       match3: string | null;
+      match4: string | null;
       match1Winner: string | null;
       match2Winner: string | null;
       match3Winner: string | null;
+      match4Winner: string | null;
       rolledMap: string | null;
       finaleBestOf?: 1 | 3;
       finaleScore?: { left: number; right: number };
+      match4BestOf?: 1 | 3;
+      match4Score?: { left: number; right: number };
+      tiebreakerWinner?: string | null;
+      tiebreakerRounds?: Record<string, number> | null;
     };
     teams: { A: any[]; B: any[]; C: any[] };
     mapImages: Record<string, string>;
@@ -264,6 +270,7 @@ export default function StreamerPage() {
     currentMatch === 1 ? ["A", "B"]
     : currentMatch === 2 ? getMatchTeams(bracket.match2)
     : currentMatch === 3 ? getMatchTeams(bracket.match3)
+    : currentMatch === 4 ? getMatchTeams(bracket.match4)
     : [];
 
   const teamAPlayers = teams[currentTeams[0] as keyof typeof teams] || [];
@@ -287,7 +294,7 @@ export default function StreamerPage() {
         </div>
 
         {/* Match progress step indicator */}
-        {currentMatch <= 3 && (
+        {currentMatch <= 4 && (
           <div className="flex items-center gap-4 bg-black/40 px-4 py-1.5 rounded-full border border-white/5">
             <div className={`flex items-center gap-1.5 text-[9px] font-mono tracking-widest font-black transition-all duration-300 ${
               currentMatch === 1 ? "text-primary" : "text-muted-foreground/40"
@@ -309,6 +316,17 @@ export default function StreamerPage() {
               <span className={`w-1.5 h-1.5 rounded-full ${currentMatch === 3 ? "bg-primary animate-pulse" : "bg-muted-foreground/20"}`} />
               FINALE {finaleBestOf === 3 ? "(BO3)" : "(BO1)"}
             </div>
+            {bracket.match4 && (
+              <>
+                <div className="w-4 h-px bg-white/10" />
+                <div className={`flex items-center gap-1.5 text-[9px] font-mono tracking-widest font-black transition-all duration-300 ${
+                  currentMatch === 4 ? "text-primary" : "text-muted-foreground/40"
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${currentMatch === 4 ? "bg-primary animate-pulse" : "bg-muted-foreground/20"}`} />
+                  TIEBREAKER {(bracket.match4BestOf ?? 1) === 3 ? "(BO3)" : "(BO1)"}
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -444,6 +462,21 @@ export default function StreamerPage() {
               finaleBestOf={finaleBestOf}
               finaleScore={finaleScore}
             />
+
+            {bracket.match4 && (
+              <MatchCard
+                label="Tiebreaker"
+                matchNum={4}
+                currentMatch={currentMatch}
+                left={`TEAM ${bracket.match4.split(" ")[0]}`}
+                right={`TEAM ${bracket.match4.split(" ")[2]}`}
+                winner={bracket.match4Winner}
+                leftTeam={bracket.match4.split(" ")[0]}
+                rightTeam={bracket.match4.split(" ")[2]}
+                finaleBestOf={bracket.match4BestOf ?? 1}
+                finaleScore={bracket.match4Score ?? { left: 0, right: 0 }}
+              />
+            )}
           </div>
 
           {/* 3. Rosters (Active) */}
@@ -493,8 +526,8 @@ export default function StreamerPage() {
         </div>
       </div>
 
-      {/* Victory Showcase if match3Winner is set and currentMatch is 4 */}
-      {currentMatch === 4 && ((bracket as any).tiebreakerWinner || bracket.match3Winner) && (
+      {/* Victory Showcase if match3Winner or match4Winner is set and currentMatch is 5 */}
+      {currentMatch === 5 && (bracket.match4Winner || bracket.match3Winner) && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -514,15 +547,15 @@ export default function StreamerPage() {
               <h1 className="text-5xl font-mono tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-amber-200 to-yellow-500 drop-shadow-[0_0_30px_rgba(234,179,8,0.5)] uppercase font-black mt-2">
                 CHAMPION
               </h1>
-              <h2 className={`text-4xl font-mono font-black mt-4 uppercase ${getTeamTextColor((bracket as any).tiebreakerWinner || bracket.match3Winner)} drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]`}>
-                TEAM {(bracket as any).tiebreakerWinner || bracket.match3Winner}
+              <h2 className={`text-4xl font-mono font-black mt-4 uppercase ${getTeamTextColor(bracket.match4Winner || bracket.match3Winner)} drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]`}>
+                TEAM {bracket.match4Winner || bracket.match3Winner}
               </h2>
             </div>
 
-            {(bracket as any).tiebreakerWinner && (
+            {bracket.match4Winner && (
               <p className="text-sm font-mono text-muted-foreground uppercase tracking-wider max-w-md mt-1 border-t border-white/5 pt-3">
-                Gewonnen durch Tiebreaker<br />
-                (Meiste Runden: A: {(bracket as any).tiebreakerRounds?.A}, B: {(bracket as any).tiebreakerRounds?.B}, C: {(bracket as any).tiebreakerRounds?.C})
+                Gewonnen durch Tiebreaker-Spiel<br />
+                (Meiste Runden der ersten 3 Spiele: A: {bracket.tiebreakerRounds?.A}, B: {bracket.tiebreakerRounds?.B}, C: {bracket.tiebreakerRounds?.C})
               </p>
             )}
 
@@ -531,7 +564,7 @@ export default function StreamerPage() {
                 <Users className="w-4 h-4" /> MEISTER ROSTER
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                {padRoster(teams[((bracket as any).tiebreakerWinner || bracket.match3Winner) as keyof typeof teams] || []).map((p, idx) => (
+                {padRoster(teams[(bracket.match4Winner || bracket.match3Winner) as keyof typeof teams] || []).map((p, idx) => (
                   p.name !== "—" && (
                     <div key={p.id || idx} className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-black/40 border border-white/5 shadow-inner">
                       <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />

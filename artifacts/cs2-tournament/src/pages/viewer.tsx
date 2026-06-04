@@ -51,7 +51,8 @@ export default function ViewerPage() {
   const [showConnectionModal, setShowConnectionModal] = useState(false);
 
   const { data: players } = useGetPlayers({ query: { queryKey: getGetPlayersQueryKey() } });
-  const { data: bracket } = useGetBracket({ query: { queryKey: getGetBracketQueryKey() } });
+  const { data: bracketData } = useGetBracket({ query: { queryKey: getGetBracketQueryKey() } });
+  const bracket = bracketData as any;
   const { data: mapImages = {} } = useGetMapImages({ query: { queryKey: getGetMapImagesQueryKey() } });
 
   const registerMutation = useRegisterViewer();
@@ -199,6 +200,7 @@ export default function ViewerPage() {
     bracket?.currentMatch === 1 ? ["A", "B"]
     : bracket?.currentMatch === 2 ? (bracket.match1Winner === "A" ? ["B", "C"] : ["A", "C"])
     : bracket?.currentMatch === 3 ? (bracket.match1Winner === "A" ? ["A", "C"] : ["B", "C"])
+    : bracket?.currentMatch === 4 && bracket.match4 ? [bracket.match4.split(" ")[0], bracket.match4.split(" ")[2]]
     : [];
 
   const isMyMatchActive = me?.team && currentTeams.includes(me.team) && rolledMap;
@@ -361,27 +363,42 @@ export default function ViewerPage() {
               <CardContent>
                 {bracket ? (
                   <>
-                    {(bracket as any).currentMatch === 4 && (
+                    {bracket.currentMatch === 5 && (
                       <div className="mb-6 p-5 border border-yellow-500/30 rounded-xl bg-yellow-500/5 text-center flex flex-col items-center gap-2 animate-in fade-in slide-in-from-top-4 duration-300">
                         <Crown className="w-10 h-10 text-yellow-500 animate-bounce" />
                         <h2 className="text-[10px] font-mono tracking-widest text-yellow-500 uppercase font-black">Turnier-Champion</h2>
                         <h1 className="text-3xl font-mono tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-amber-200 to-yellow-500 uppercase font-black mt-1">
-                          TEAM {(bracket as any).tiebreakerWinner || bracket.match3Winner}
+                          TEAM {bracket.match4Winner || bracket.match3Winner}
                         </h1>
-                        {(bracket as any).tiebreakerWinner && (
+                        {bracket.match4Winner && (
                           <p className="text-xs font-mono text-muted-foreground uppercase mt-1 max-w-md">
-                            Gewonnen durch Tiebreaker (Meiste Runden: A: {(bracket as any).tiebreakerRounds?.A}, B: {(bracket as any).tiebreakerRounds?.B}, C: {(bracket as any).tiebreakerRounds?.C})
+                            Gewonnen durch Tiebreaker-Spiel (Meiste Runden der ersten 3 Spiele: A: {bracket.tiebreakerRounds?.A}, B: {bracket.tiebreakerRounds?.B}, C: {bracket.tiebreakerRounds?.C})
                           </p>
                         )}
                       </div>
                     )}
 
                     <div className="grid gap-4 md:grid-cols-3 mb-6">
-                      {[
-                        { label: "Partie 1", num: 1, left: "TEAM A", right: "TEAM B", winner: bracket.match1Winner, lTeam: "A", rTeam: "B", rounds: (bracket as any).match1Rounds },
-                        { label: "Partie 2", num: 2, left: bracket.match2 ? `TEAM ${bracket.match2.split(" ")[0]}` : "?", right: bracket.match2 ? `TEAM ${bracket.match2.split(" ")[2]}` : "?", winner: bracket.match2Winner, lTeam: bracket.match2?.split(" ")[0] ?? null, rTeam: bracket.match2?.split(" ")[2] ?? null, rounds: (bracket as any).match2Rounds },
-                        { label: "Finale", num: 3, left: bracket.match3 ? `TEAM ${bracket.match3.split(" ")[0]}` : "?", right: bracket.match3 ? `TEAM ${bracket.match3.split(" ")[2]}` : "?", winner: bracket.match3Winner, lTeam: bracket.match3?.split(" ")[0] ?? null, rTeam: bracket.match3?.split(" ")[2] ?? null, rounds: (bracket as any).match3Rounds },
-                      ].map(({ label, num, left, right, winner, lTeam, rTeam, rounds }) => (
+                      {(() => {
+                        const list = [
+                          { label: "Partie 1", num: 1, left: "TEAM A", right: "TEAM B", winner: bracket.match1Winner, lTeam: "A", rTeam: "B", rounds: (bracket as any).match1Rounds },
+                          { label: "Partie 2", num: 2, left: bracket.match2 ? `TEAM ${bracket.match2.split(" ")[0]}` : "?", right: bracket.match2 ? `TEAM ${bracket.match2.split(" ")[2]}` : "?", winner: bracket.match2Winner, lTeam: bracket.match2?.split(" ")[0] ?? null, rTeam: bracket.match2?.split(" ")[2] ?? null, rounds: (bracket as any).match2Rounds },
+                          { label: "Finale", num: 3, left: bracket.match3 ? `TEAM ${bracket.match3.split(" ")[0]}` : "?", right: bracket.match3 ? `TEAM ${bracket.match3.split(" ")[2]}` : "?", winner: bracket.match3Winner, lTeam: bracket.match3?.split(" ")[0] ?? null, rTeam: bracket.match3?.split(" ")[2] ?? null, rounds: (bracket as any).match3Rounds },
+                        ];
+                        if (bracket.match4) {
+                          list.push({
+                            label: "Tiebreaker",
+                            num: 4,
+                            left: `TEAM ${bracket.match4.split(" ")[0]}`,
+                            right: `TEAM ${bracket.match4.split(" ")[2]}`,
+                            winner: bracket.match4Winner,
+                            lTeam: bracket.match4.split(" ")[0],
+                            rTeam: bracket.match4.split(" ")[2],
+                            rounds: (bracket as any).match4Rounds,
+                          });
+                        }
+                        return list;
+                      })().map(({ label, num, left, right, winner, lTeam, rTeam, rounds }) => (
                         <div key={label} className={`p-4 border rounded-lg ${bracket.currentMatch === num ? "border-primary shadow-[0_0_15px_rgba(249,115,22,0.2)]" : "border-border"}`}>
                           <h3 className="font-mono text-sm text-muted-foreground mb-2 uppercase">{label}</h3>
                           <div className="flex justify-between items-center text-lg font-bold">
