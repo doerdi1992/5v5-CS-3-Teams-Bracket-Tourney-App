@@ -65,6 +65,78 @@ router.delete("/players/:id", (req, res) => {
   res.json({ success: true, message: null });
 });
 
+router.get("/players/resolve-steam", async (req, res) => {
+  const { input } = req.query as { input?: string };
+  if (!input || !input.trim()) {
+    res.status(400).json({ error: "Eingabe erforderlich." });
+    return;
+  }
+
+  const query = input.trim();
+
+  // 1. Check if it's already a direct 17-digit Steam64 ID
+  if (/^\d{17}$/.test(query)) {
+    res.json({ steamId: query });
+    return;
+  }
+
+  // 2. Check if it contains profiles/<steamid64>
+  const profileMatch = query.match(/steamcommunity\.com\/profiles\/(\d{17})/i);
+  if (profileMatch && profileMatch[1]) {
+    res.json({ steamId: profileMatch[1] });
+    return;
+  }
+
+  // 3. Resolve vanity URL
+  let vanityName = query;
+  const idMatch = query.match(/steamcommunity\.com\/id\/([a-zA-Z0-9_-]+)/i);
+  if (idMatch && idMatch[1]) {
+    vanityName = idMatch[1];
+  } else {
+    // If it's a URL but didn't match the patterns, return error
+    if (query.includes("steamcommunity.com")) {
+      res.status(400).json({ error: "Ungültiges Steam-Profil-Format." });
+      return;
+    }
+  }
+
+  // Clean vanityName of any trailing slashes
+  vanityName = vanityName.replace(/\/+$/, "");
+
+  try {
+    const steamUrl = `https://steamcommunity.com/id/${vanityName}/?xml=1`;
+    const response = await fetch(steamUrl);
+    if (!response.ok) {
+      throw new Error(`Profile fetch failed: ${response.statusText}`);
+    }
+    const text = await response.text();
+    const id64Match = text.match(/<steamID64>(\d{17})<\/steamID64>/);
+    if (id64Match && id64Match[1]) {
+      res.json({ steamId: id64Match[1] });
+      return;
+    }
+    
+    // Also try as custom profiles fallback just in case the name itself was a custom profile URL suffix
+    if (/^\d+$/.test(vanityName)) {
+      const altUrl = `https://steamcommunity.com/profiles/${vanityName}/?xml=1`;
+      const altResponse = await fetch(altUrl);
+      if (altResponse.ok) {
+        const altText = await altResponse.text();
+        const altIdMatch = altText.match(/<steamID64>(\d{17})<\/steamID64>/);
+        if (altIdMatch && altIdMatch[1]) {
+          res.json({ steamId: altIdMatch[1] });
+          return;
+        }
+      }
+    }
+
+    res.status(404).json({ error: "Steam-ID konnte nicht aufgelöst werden. Bitte gib deine 17-stellige Steam64 ID direkt ein." });
+  } catch (err: any) {
+    console.error("Steam ID resolve error:", err);
+    res.status(500).json({ error: `Verbindungsfehler zu Steam: ${err.message}` });
+  }
+});
+
 router.post("/players/register", (req, res) => {
   const parsed = RegisterViewerBody.safeParse(req.body);
   if (!parsed.success) {

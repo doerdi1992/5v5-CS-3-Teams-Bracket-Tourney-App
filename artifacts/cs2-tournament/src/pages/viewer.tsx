@@ -86,12 +86,32 @@ export default function ViewerPage() {
     return () => { socket.off("server_broadcast", handleBroadcast); };
   }, [players, playerName]);
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nameInput.trim()) return;
-    if (steamIdInput.trim() && !/^\d{17}$/.test(steamIdInput.trim())) {
-      toast({ variant: "destructive", title: "Ungültige Steam64 ID", description: "Die Steam64 ID muss genau 17 Ziffern lang sein." });
-      return;
+
+    let resolvedSteamId = steamIdInput.trim();
+
+    if (resolvedSteamId) {
+      if (!/^\d{17}$/.test(resolvedSteamId)) {
+        setIsRegistering(true);
+        try {
+          const res = await fetch(`/api/players/resolve-steam?input=${encodeURIComponent(resolvedSteamId)}`);
+          const data = await res.json() as { steamId?: string; error?: string };
+          if (res.ok && data.steamId) {
+            resolvedSteamId = data.steamId;
+            setSteamIdInput(data.steamId);
+            localStorage.setItem("cs2_steam_id", data.steamId);
+            toast({ title: "Steam-ID aufgelöst", description: `Profil verifiziert: ${data.steamId}` });
+          } else {
+            throw new Error(data.error || "Steam-ID konnte nicht ermittelt werden.");
+          }
+        } catch (err: any) {
+          toast({ variant: "destructive", title: "Fehler beim Auflösen der Steam-ID", description: err.message });
+          setIsRegistering(false);
+          return;
+        }
+      }
     }
 
     setIsRegistering(true);
@@ -101,7 +121,7 @@ export default function ViewerPage() {
       body: JSON.stringify({
         name: nameInput.trim(),
         clientId,
-        steamId: steamIdInput.trim() || undefined
+        steamId: resolvedSteamId || undefined
       })
     })
       .then(async (res) => {
@@ -113,7 +133,7 @@ export default function ViewerPage() {
       })
       .then(() => {
         localStorage.setItem("cs2_player_name", nameInput.trim());
-        localStorage.setItem("cs2_steam_id", steamIdInput.trim());
+        localStorage.setItem("cs2_steam_id", resolvedSteamId);
         setPlayerName(nameInput.trim());
         setIsRegistered(true);
         socket.emit("register", { clientId });
@@ -160,7 +180,7 @@ export default function ViewerPage() {
                 </div>
                 <div className="space-y-1">
                   <div className="flex justify-between items-center">
-                    <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Steam64 ID (17 Stellen, für Server-Join)</label>
+                    <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Steam-Profil oder Steam64 ID (für Server-Join)</label>
                     <a
                       href="https://steamid.xyz/"
                       target="_blank"
@@ -171,7 +191,7 @@ export default function ViewerPage() {
                       ID finden
                     </a>
                   </div>
-                  <Input value={steamIdInput} onChange={(e) => setSteamIdInput(e.target.value)} placeholder="z.B. 76561198000000000" className="font-mono bg-background/50" />
+                  <Input value={steamIdInput} onChange={(e) => setSteamIdInput(e.target.value)} placeholder="z.B. https://steamcommunity.com/id/name oder raw ID" className="font-mono bg-background/50" />
                 </div>
                 <Button type="submit" className="w-full font-mono uppercase tracking-widest" disabled={isRegistering}>
                   {isRegistering ? "Verbinde..." : "Anmelden"}
