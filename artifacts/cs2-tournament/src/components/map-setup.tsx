@@ -38,108 +38,126 @@ export default function MapSetup() {
 
   const [rows, setRows] = useState<MapRow[]>([]);
 
-  const [connectionString, setConnectionString] = useState(() =>
-    localStorage.getItem("cs2_connection_string") ?? ""
-  );
-  const [autoSend, setAutoSend] = useState(() => {
-    const stored = localStorage.getItem("cs2_auto_send");
-    return stored === null ? true : stored === "1";
-  });
+  const [connectionString, setConnectionString] = useState("");
+  const [autoSend, setAutoSend] = useState(true);
   const [showConnection, setShowConnection] = useState(false);
 
-  const [rconHost, setRconHost] = useState(() =>
-    localStorage.getItem("cs2_rcon_host") ?? ""
-  );
-  const [rconPort, setRconPort] = useState(() =>
-    localStorage.getItem("cs2_rcon_port") ?? ""
-  );
-  const [rconPassword, setRconPassword] = useState(() =>
-    localStorage.getItem("cs2_rcon_password") ?? ""
-  );
+  const [rconHost, setRconHost] = useState("");
+  const [rconPort, setRconPort] = useState("27015");
+  const [rconPassword, setRconPassword] = useState("");
   const [showRconPw, setShowRconPw] = useState(false);
   const [rconStatus, setRconStatus] = useState("");
   const [isStartingMatch, setIsStartingMatch] = useState(false);
-  const [autoStartMatch, setAutoStartMatch] = useState(() => {
-    const stored = localStorage.getItem("cs2_auto_start_match");
-    return stored === null ? true : stored === "1";
-  });
+  const [autoStartMatch, setAutoStartMatch] = useState(true);
+
+  // FTP state variables
+  const [loadMethod, setLoadMethod] = useState<"url" | "ftp">("url");
+  const [ftpHost, setFtpHost] = useState("");
+  const [ftpPort, setFtpPort] = useState("21");
+  const [ftpUser, setFtpUser] = useState("");
+  const [ftpPassword, setFtpPassword] = useState("");
+  const [ftpDir, setFtpDir] = useState("game/csgo/MatchZy/");
+  const [isSavingConfig, setIsSavingConfig] = useState(false);
 
   useEffect(() => {
-    const hasConn = localStorage.getItem("cs2_connection_string");
-    const hasHost = localStorage.getItem("cs2_rcon_host");
-    const hasPort = localStorage.getItem("cs2_rcon_port");
-    const hasPw = localStorage.getItem("cs2_rcon_password");
     const adminPassword = sessionStorage.getItem("cs2_admin_password") ?? "";
-
-    fetch("/api/config/defaults", {
+    fetch("/api/config/server", {
       headers: {
         "x-admin-password": adminPassword
       }
     })
-      .then((res) => res.json())
-      .then((defaults) => {
-        if (!hasConn && defaults.connectionString) setConnectionString(defaults.connectionString);
-        if (!hasHost && defaults.rconHost) setRconHost(defaults.rconHost);
-        if (!hasPort && defaults.rconPort) setRconPort(defaults.rconPort);
-        if (!hasPw && defaults.rconPassword) setRconPassword(defaults.rconPassword);
+      .then((res) => {
+        if (!res.ok) throw new Error("Server Settings failed to load");
+        return res.json();
       })
-      .catch((err) => console.error("Error fetching config defaults:", err));
+      .then((config: any) => {
+        setConnectionString(config.connectionString ?? "");
+        setAutoSend(config.autoSend ?? true);
+        setRconHost(config.rconHost ?? "");
+        setRconPort(String(config.rconPort ?? "27015"));
+        setRconPassword(config.rconPassword ?? "");
+        setLoadMethod(config.loadMethod ?? "url");
+        setFtpHost(config.ftpHost ?? "");
+        setFtpPort(String(config.ftpPort ?? "21"));
+        setFtpUser(config.ftpUser ?? "");
+        setFtpPassword(config.ftpPassword ?? "");
+        setFtpDir(config.ftpDir ?? "game/csgo/MatchZy/");
+        setAutoStartMatch(config.autoStartMatch ?? true);
+      })
+      .catch((err) => console.error("Error loading server settings:", err));
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem("cs2_connection_string", connectionString);
-  }, [connectionString]);
-
-  useEffect(() => {
-    localStorage.setItem("cs2_auto_send", autoSend ? "1" : "0");
-  }, [autoSend]);
-
-  useEffect(() => {
-    localStorage.setItem("cs2_auto_start_match", autoStartMatch ? "1" : "0");
-  }, [autoStartMatch]);
-
-  useEffect(() => {
-    let cleanHost = rconHost.trim();
-    if (cleanHost.includes(":")) {
-      cleanHost = cleanHost.split(":")[0];
-    }
-    localStorage.setItem("cs2_rcon_host", cleanHost);
-  }, [rconHost]);
-
-  useEffect(() => {
-    localStorage.setItem("cs2_rcon_port", rconPort);
-  }, [rconPort]);
-
-  useEffect(() => {
-    localStorage.setItem("cs2_rcon_password", rconPassword);
-  }, [rconPassword]);
-
-  const handleStartMatch = async () => {
-    if (!rconHost || !rconPort || !rconPassword) {
-      toast({ variant: "destructive", title: "Fehler", description: "RCON Server IP, Port und RCON-Passwort müssen ausgefüllt sein." });
-      return;
-    }
-
-    let cleanHost = rconHost.trim();
-    if (cleanHost.includes(":")) {
-      cleanHost = cleanHost.split(":")[0];
-    }
-
-    setIsStartingMatch(true);
-    setRconStatus("RCON Verbindungsaufbau...");
+  const handleSaveConfig = async () => {
+    setIsSavingConfig(true);
     try {
       const adminPassword = sessionStorage.getItem("cs2_admin_password") ?? "";
-      const res = await fetch("/api/matchzy/start", {
+      const res = await fetch("/api/config/server", {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           "x-admin-password": adminPassword
         },
         body: JSON.stringify({
-          host: cleanHost,
-          port: Number(rconPort),
-          password: rconPassword
-        }),
+          connectionString,
+          autoSend,
+          autoStartMatch,
+          rconHost,
+          rconPort: Number(rconPort) || 27015,
+          rconPassword,
+          loadMethod,
+          ftpHost,
+          ftpPort: Number(ftpPort) || 21,
+          ftpUser,
+          ftpPassword,
+          ftpDir
+        })
+      });
+
+      if (!res.ok) throw new Error("Einstellungen konnten nicht gespeichert werden");
+      toast({ title: "Gespeichert", description: "Die Konfiguration wurde serverseitig gespeichert." });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Fehler beim Speichern", description: e.message });
+    } finally {
+      setIsSavingConfig(false);
+    }
+  };
+
+  const handleStartMatch = async () => {
+    setIsStartingMatch(true);
+    setRconStatus("Verbindungsaufbau & MatchZy Pipeline initiiert...");
+    try {
+      const adminPassword = sessionStorage.getItem("cs2_admin_password") ?? "";
+      
+      // Save current configuration first to ensure latest is used
+      const saveRes = await fetch("/api/config/server", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-password": adminPassword
+        },
+        body: JSON.stringify({
+          connectionString,
+          autoSend,
+          autoStartMatch,
+          rconHost,
+          rconPort: Number(rconPort) || 27015,
+          rconPassword,
+          loadMethod,
+          ftpHost,
+          ftpPort: Number(ftpPort) || 21,
+          ftpUser,
+          ftpPassword,
+          ftpDir
+        })
+      });
+
+      if (!saveRes.ok) throw new Error("Einstellungen konnten vor dem Start nicht gespeichert werden");
+
+      const res = await fetch("/api/matchzy/start", {
+        method: "POST",
+        headers: { 
+          "x-admin-password": adminPassword
+        }
       });
 
       const data = await res.json() as { success?: boolean; command?: string; output?: string; error?: string };
@@ -147,7 +165,7 @@ export default function MapSetup() {
         toast({ title: "Match gestartet!", description: "MatchZy-Match erfolgreich auf CS2 Server geladen." });
         setRconStatus(`Erfolg: ${data.output || "Match geladen."}`);
       } else {
-        throw new Error(data.error || "RCON fehlgeschlagen");
+        throw new Error(data.error || "Start fehlgeschlagen");
       }
     } catch (e: any) {
       toast({ variant: "destructive", title: "Fehler beim Match-Start", description: e.message });
@@ -322,10 +340,10 @@ export default function MapSetup() {
             </CardTitle>
             <span className="flex items-center gap-1.5 text-[10px] font-mono text-green-500/70 uppercase tracking-wider">
               <Save className="w-3 h-3" />
-              Auto-gespeichert
+              Serverseitig gesichert
             </span>
           </div>
-          <CardDescription className="font-mono text-xs">CS2 Server RCON-Verbindung zur MatchZy-Steuerung</CardDescription>
+          <CardDescription className="font-mono text-xs">CS2 Server RCON-Verbindung & MatchZy-Steuerung</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-3 gap-3">
@@ -370,6 +388,79 @@ export default function MapSetup() {
             </div>
           </div>
 
+          {/* Lademethode Selector */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Lademethode (MatchZy JSON)</label>
+            <select
+              value={loadMethod}
+              onChange={(e) => setLoadMethod(e.target.value as "url" | "ftp")}
+              className="w-full font-mono text-xs bg-black/50 border border-green-500/30 rounded p-2 text-foreground focus-visible:ring-green-500"
+            >
+              <option value="url">RCON Pull über HTTP-URL (standard)</option>
+              <option value="ftp">Sicherer FTP-Upload auf Server</option>
+            </select>
+          </div>
+
+          {/* FTP Subform */}
+          {loadMethod === "ftp" && (
+            <div className="space-y-3 p-3 rounded border border-green-500/20 bg-green-500/5 animate-in fade-in duration-200">
+              <p className="text-[10px] font-mono uppercase tracking-wider text-green-400 font-bold">FTP Server-Einstellungen</p>
+              
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2 space-y-1">
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">FTP Host (falls abweichend)</label>
+                  <Input
+                    placeholder="z.B. 12.34.56.78"
+                    value={ftpHost}
+                    onChange={(e) => setFtpHost(e.target.value)}
+                    className="font-mono text-xs bg-black/50 border-green-500/30"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">FTP Port</label>
+                  <Input
+                    placeholder="21"
+                    value={ftpPort}
+                    onChange={(e) => setFtpPort(e.target.value)}
+                    className="font-mono text-xs bg-black/50 border-green-500/30"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">FTP Benutzer</label>
+                  <Input
+                    placeholder="FTP-Username..."
+                    value={ftpUser}
+                    onChange={(e) => setFtpUser(e.target.value)}
+                    className="font-mono text-xs bg-black/50 border-green-500/30"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">FTP Passwort</label>
+                  <Input
+                    type="password"
+                    placeholder="FTP-Passwort..."
+                    value={ftpPassword}
+                    onChange={(e) => setFtpPassword(e.target.value)}
+                    className="font-mono text-xs bg-black/50 border-green-500/30"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">MatchZy Server-Verzeichnis</label>
+                <Input
+                  placeholder="game/csgo/MatchZy/"
+                  value={ftpDir}
+                  onChange={(e) => setFtpDir(e.target.value)}
+                  className="font-mono text-xs bg-black/50 border-green-500/30"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Auto-start toggle */}
           <div className="flex items-center justify-between p-3 rounded-md border border-border/30 bg-background/30">
             <div className="flex items-center gap-2">
@@ -385,13 +476,24 @@ export default function MapSetup() {
             />
           </div>
 
-          <Button
-            className="w-full font-mono font-bold tracking-widest bg-green-600 hover:bg-green-700 text-white"
-            onClick={handleStartMatch}
-            disabled={!rconHost || !rconPort || !rconPassword || isStartingMatch}
-          >
-            {isStartingMatch ? "STARTET..." : "MATCH AUF SERVER STARTEN"}
-          </Button>
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            <Button
+              variant="outline"
+              className="font-mono text-xs uppercase tracking-wider border-green-500/30 text-green-400 hover:bg-green-500/10"
+              onClick={handleSaveConfig}
+              disabled={isSavingConfig}
+            >
+              {isSavingConfig ? "Speichert..." : "SPEICHERN"}
+            </Button>
+            
+            <Button
+              className="font-mono text-xs uppercase tracking-wider bg-green-600 hover:bg-green-700 text-white"
+              onClick={handleStartMatch}
+              disabled={!rconHost || !rconPort || !rconPassword || isStartingMatch}
+            >
+              {isStartingMatch ? "Startet..." : "MATCH DIREKT STARTEN"}
+            </Button>
+          </div>
 
           {rconStatus && (
             <div className="p-2.5 bg-black/40 border border-green-500/20 rounded font-mono text-[10px] text-green-400 break-all">

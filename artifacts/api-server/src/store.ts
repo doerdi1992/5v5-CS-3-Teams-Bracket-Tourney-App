@@ -1,7 +1,25 @@
 import { randomUUID } from "crypto";
+import fs from "fs";
+import path from "path";
 
 export type PlayerStatus = "pending" | "accepted" | "rejected";
 export type TeamName = "A" | "B" | "C";
+
+export interface ServerSettings {
+  rconHost: string;
+  rconPort: number;
+  rconPassword?: string;
+  loadMethod: "url" | "ftp";
+  ftpHost?: string;
+  ftpPort?: number;
+  ftpUser?: string;
+  ftpPassword?: string;
+  ftpDir?: string;
+  connectionString?: string;
+  autoSend: boolean;
+  autoStartMatch: boolean;
+  appUrl?: string;
+}
 
 export interface Player {
   id: string;
@@ -56,6 +74,84 @@ class Store {
     ["Cobblestone", "https://static.wikia.nocookie.net/cswikia/images/b/bc/De_cbble_s2.png/revision/latest?cb=20230701154412"],
     ["Mirage", "https://static.wikia.nocookie.net/cswikia/images/f/f5/De_mirage_cs2.png/revision/latest?cb=20230807124319"]
   ]);
+
+  serverSettings: ServerSettings = this.loadServerSettings();
+
+  loadServerSettings(): ServerSettings {
+    const configPath = path.resolve(process.cwd(), "artifacts/api-server/server_config.json");
+    try {
+      if (fs.existsSync(configPath)) {
+        const data = fs.readFileSync(configPath, "utf8");
+        return JSON.parse(data);
+      }
+    } catch (e) {
+      console.error("Failed to load server settings from file, using env defaults:", e);
+    }
+
+    // Default settings from environment or fallbacks
+    return {
+      rconHost: process.env["DEFAULT_RCON_HOST"] || "",
+      rconPort: Number(process.env["DEFAULT_RCON_PORT"]) || 27015,
+      rconPassword: process.env["DEFAULT_RCON_PASSWORD"] || "",
+      loadMethod: "url",
+      ftpHost: "",
+      ftpPort: 21,
+      ftpUser: "",
+      ftpPassword: "",
+      ftpDir: "game/csgo/MatchZy/",
+      connectionString: process.env["DEFAULT_SERVER_CONNECTION"] || "",
+      autoSend: true,
+      autoStartMatch: true,
+      appUrl: "",
+    };
+  }
+
+  saveServerSettings(settings: Partial<ServerSettings>): void {
+    const current = this.serverSettings;
+    const merged = { ...current };
+
+    // Update fields, handling masked passwords
+    for (const key of Object.keys(settings) as Array<keyof ServerSettings>) {
+      const val = settings[key];
+      if (key === "rconPassword") {
+        if (val && val !== "********") {
+          merged.rconPassword = val as string;
+        }
+      } else if (key === "ftpPassword") {
+        if (val && val !== "********") {
+          merged.ftpPassword = val as string;
+        }
+      } else {
+        (merged as any)[key] = val;
+      }
+    }
+
+    this.serverSettings = merged;
+
+    const configPath = path.resolve(process.cwd(), "artifacts/api-server/server_config.json");
+    try {
+      // Ensure the directory exists
+      const dir = path.dirname(configPath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      fs.writeFileSync(configPath, JSON.stringify(merged, null, 2), "utf8");
+      console.log(`[Store] Server settings saved to ${configPath}`);
+    } catch (e) {
+      console.error("Failed to write server settings to file:", e);
+    }
+  }
+
+  getServerSettings(maskPasswords = true): ServerSettings {
+    if (!maskPasswords) {
+      return this.serverSettings;
+    }
+    return {
+      ...this.serverSettings,
+      rconPassword: this.serverSettings.rconPassword ? "********" : "",
+      ftpPassword: this.serverSettings.ftpPassword ? "********" : "",
+    };
+  }
 
   addPlayer(name: string, status: PlayerStatus = "accepted", steamId?: string): Player {
     const id = randomUUID();

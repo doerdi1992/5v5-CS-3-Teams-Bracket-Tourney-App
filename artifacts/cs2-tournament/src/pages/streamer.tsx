@@ -492,7 +492,6 @@ export default function StreamerPage() {
           )}
         </div>
       </div>
-      </div>
 
       {/* Victory Showcase if match3Winner is set and currentMatch is 4 */}
       {currentMatch === 4 && bracket.match3Winner && (

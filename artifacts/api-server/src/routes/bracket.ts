@@ -52,21 +52,7 @@ router.post("/maps/roll", (req, res) => {
   res.json({ map });
 });
 
-// Helper to resolve RCON retry on server boot
-async function sendRconWithRetry(host: string, port: number, pw: string, cmd: string, retries = 12, delay = 3000) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      console.log(`Attempting RCON command (Attempt ${i + 1}/${retries}): ${cmd}`);
-      await Rcon.send(host, port, pw, cmd);
-      console.log(`RCON command succeeded: ${cmd}`);
-      return;
-    } catch (e: any) {
-      console.warn(`RCON attempt ${i + 1} failed: ${e.message}. Retrying in ${delay}ms...`);
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
-  }
-  console.error(`RCON command failed after ${retries} attempts: ${cmd}`);
-}
+import { runMatchzyStartSequence } from "./matchzy.js";
 
 router.post("/maps/confirm-roll", async (req, res) => {
   const { map } = req.body as { map?: string };
@@ -77,48 +63,18 @@ router.post("/maps/confirm-roll", async (req, res) => {
   store.setRolledMap(map);
   broadcastStateUpdate();
 
-  // Automatically trigger RCON map change and MatchZy match load if configured
-  const host = process.env["DEFAULT_RCON_HOST"];
-  const port = process.env["DEFAULT_RCON_PORT"];
-  const password = process.env["DEFAULT_RCON_PASSWORD"];
-
-  if (host && port && password) {
-    try {
-      let finalHost = host.trim();
-      if (finalHost.includes(":")) {
-        finalHost = finalHost.split(":")[0];
-      }
-
-      // Resolve map path using registry
-      let resolvedMap = map;
-      try {
-        const registryPath = path.resolve(process.cwd(), "artifacts/matchzy-generator/map_registry.json");
-        if (fs.existsSync(registryPath)) {
-          const registry = JSON.parse(fs.readFileSync(registryPath, "utf8"));
-          const key = map.toLowerCase().trim();
-          resolvedMap = registry[key] || registry["default"] || map;
-        }
-      } catch (e) {
-        console.error("Error resolving map path on confirm-roll:", e);
-      }
-
-      const appUrl = `${req.protocol}://${req.get("host")}`;
-      const configUrl = `${appUrl}/api/matchzy/active-match.json`;
-
-      // 1. Force immediately change level to restart map
-      const cmd = `changelevel "${resolvedMap}"`;
-      console.log(`Sending RCON confirm-roll changelevel to ${finalHost}:${port}: ${cmd}`);
-      await Rcon.send(finalHost, Number(port), password, cmd);
-
-      // 2. Schedule match config load to retry until server completes loading level
-      setTimeout(() => {
-        const loadCmd = `matchzy_loadmatch_url "${configUrl}"`;
-        void sendRconWithRetry(finalHost, Number(port), password, loadCmd);
-      }, 5000);
-
-    } catch (err: any) {
-      console.error("Auto RCON map change on confirm-roll failed:", err);
-    }
+  // Automatically trigger MatchZy start sequence if autoStartMatch is enabled
+  const settings = store.getServerSettings(false);
+  if (settings.autoStartMatch) {
+    console.log(`[Auto Start] Triggering automatic MatchZy start sequence for map: ${map}`);
+    // Run asynchronously to prevent holding up client request
+    runMatchzyStartSequence(map)
+      .then((startRes) => {
+        console.log(`[Auto Start] Automatic MatchZy start succeeded:`, startRes.command);
+      })
+      .catch((err) => {
+        console.error(`[Auto Start] Automatic MatchZy start failed:`, err.message);
+      });
   }
 
   res.json({ success: true, rolledMap: map });
