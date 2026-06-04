@@ -7,6 +7,7 @@ import serverBroadcastRouter from "./server-broadcast.js";
 import stateRouter from "./state.js";
 import adminAuthRouter from "./admin-auth.js";
 import mapImagesRouter from "./map-images.js";
+import matchzyRouter from "./matchzy.js";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(teamsRouter);
 router.use(bracketRouter);
 router.use(serverBroadcastRouter);
 router.use(stateRouter);
+router.use(matchzyRouter);
 
 export default router;

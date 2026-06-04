@@ -46,6 +46,19 @@ export default function MapSetup() {
   );
   const [showConnection, setShowConnection] = useState(false);
 
+  const [rconHost, setRconHost] = useState(() =>
+    localStorage.getItem("cs2_rcon_host") ?? ""
+  );
+  const [rconPort, setRconPort] = useState(() =>
+    localStorage.getItem("cs2_rcon_port") ?? "27015"
+  );
+  const [rconPassword, setRconPassword] = useState(() =>
+    localStorage.getItem("cs2_rcon_password") ?? ""
+  );
+  const [showRconPw, setShowRconPw] = useState(false);
+  const [rconStatus, setRconStatus] = useState("");
+  const [isStartingMatch, setIsStartingMatch] = useState(false);
+
   useEffect(() => {
     localStorage.setItem("cs2_connection_string", connectionString);
   }, [connectionString]);
@@ -53,6 +66,52 @@ export default function MapSetup() {
   useEffect(() => {
     localStorage.setItem("cs2_auto_send", autoSend ? "1" : "0");
   }, [autoSend]);
+
+  useEffect(() => {
+    localStorage.setItem("cs2_rcon_host", rconHost);
+  }, [rconHost]);
+
+  useEffect(() => {
+    localStorage.setItem("cs2_rcon_port", rconPort);
+  }, [rconPort]);
+
+  useEffect(() => {
+    localStorage.setItem("cs2_rcon_password", rconPassword);
+  }, [rconPassword]);
+
+  const handleStartMatch = async () => {
+    if (!rconHost || !rconPort || !rconPassword) {
+      toast({ variant: "destructive", title: "Fehler", description: "RCON Server IP, Port und RCON-Passwort müssen ausgefüllt sein." });
+      return;
+    }
+
+    setIsStartingMatch(true);
+    setRconStatus("RCON Verbindungsaufbau...");
+    try {
+      const res = await fetch("/api/matchzy/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          host: rconHost,
+          port: Number(rconPort),
+          password: rconPassword
+        }),
+      });
+
+      const data = await res.json() as { success?: boolean; command?: string; output?: string; error?: string };
+      if (res.ok && data.success) {
+        toast({ title: "Match gestartet!", description: "MatchZy-Match erfolgreich auf CS2 Server geladen." });
+        setRconStatus(`Erfolg: ${data.output || "Match geladen."}`);
+      } else {
+        throw new Error(data.error || "RCON fehlgeschlagen");
+      }
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Fehler beim Match-Start", description: e.message });
+      setRconStatus(`Fehler: ${e.message}`);
+    } finally {
+      setIsStartingMatch(false);
+    }
+  };
 
   const handleBroadcast = () => {
     if (!connectionString.trim()) return;
@@ -206,6 +265,80 @@ export default function MapSetup() {
           >
             AN SPIELER ÜBERTRAGEN
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* MatchZy CS2 Server Control */}
+      <Card className="border-green-500/20 bg-green-500/5">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="font-mono text-green-500 flex items-center gap-2">
+              <Zap className="w-5 h-5 fill-current" />
+              MATCHZY AUTOMATION
+            </CardTitle>
+            <span className="flex items-center gap-1.5 text-[10px] font-mono text-green-500/70 uppercase tracking-wider">
+              <Save className="w-3 h-3" />
+              Auto-gespeichert
+            </span>
+          </div>
+          <CardDescription className="font-mono text-xs">CS2 Server RCON-Verbindung zur MatchZy-Steuerung</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2 space-y-1">
+              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Server IP / Host</label>
+              <Input
+                placeholder="z.B. 12.34.56.78"
+                value={rconHost}
+                onChange={(e) => setRconHost(e.target.value)}
+                className="font-mono text-xs bg-black/50 border-green-500/30"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">RCON Port</label>
+              <Input
+                placeholder="27015"
+                value={rconPort}
+                onChange={(e) => setRconPort(e.target.value)}
+                className="font-mono text-xs bg-black/50 border-green-500/30"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">RCON Passwort</label>
+            <div className="relative">
+              <Input
+                type={showRconPw ? "text" : "password"}
+                placeholder="RCON-Passwort..."
+                value={rconPassword}
+                onChange={(e) => setRconPassword(e.target.value)}
+                className="font-mono text-xs bg-black/50 border-green-500/30 pr-10"
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => setShowRconPw((v) => !v)}
+                tabIndex={-1}
+              >
+                {showRconPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          <Button
+            className="w-full font-mono font-bold tracking-widest bg-green-600 hover:bg-green-700 text-white"
+            onClick={handleStartMatch}
+            disabled={!rconHost || !rconPort || !rconPassword || isStartingMatch}
+          >
+            {isStartingMatch ? "STARTET..." : "MATCH AUF SERVER STARTEN"}
+          </Button>
+
+          {rconStatus && (
+            <div className="p-2.5 bg-black/40 border border-green-500/20 rounded font-mono text-[10px] text-green-400 break-all">
+              {rconStatus}
+            </div>
+          )}
         </CardContent>
       </Card>
 

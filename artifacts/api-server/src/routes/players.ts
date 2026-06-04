@@ -37,7 +37,11 @@ router.patch("/players/:id", (req, res) => {
     res.status(400).json({ error: "Invalid request" });
     return;
   }
-  const updated = store.updatePlayer(params.data.id, body.data as any);
+  const updates = { ...(body.data as any) };
+  if ((req.body as any).steamId !== undefined) {
+    updates.steamId = (req.body as any).steamId ? String((req.body as any).steamId).trim() : null;
+  }
+  const updated = store.updatePlayer(params.data.id, updates);
   if (!updated) {
     res.status(404).json({ error: "Player not found" });
     return;
@@ -68,7 +72,8 @@ router.post("/players/register", (req, res) => {
     return;
   }
   const { name, clientId } = parsed.data;
-  const player = store.addViewerPlayer(clientId, name.trim());
+  const steamId = (req.body as any).steamId ? String((req.body as any).steamId).trim() : undefined;
+  const player = store.addViewerPlayer(clientId, name.trim(), steamId);
   broadcastStateUpdate();
   res.status(201).json(player);
 });

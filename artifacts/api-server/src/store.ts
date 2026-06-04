@@ -10,6 +10,7 @@ export interface Player {
   status: PlayerStatus;
   team: TeamName | null;
   socketId: string | null;
+  steamId?: string;
 }
 
 export interface Teams {
@@ -52,17 +53,20 @@ class Store {
   activeServerDetails: string | null = null;
   mapImages: Map<string, string> = new Map();
 
-  addPlayer(name: string, status: PlayerStatus = "accepted"): Player {
+  addPlayer(name: string, status: PlayerStatus = "accepted", steamId?: string): Player {
     const id = randomUUID();
-    const player: Player = { id, name, flagged: false, status, team: null, socketId: null };
+    const player: Player = { id, name, flagged: false, status, team: null, socketId: null, steamId };
     this.playerPool.set(id, player);
     return player;
   }
 
-  addViewerPlayer(clientId: string, name: string): Player {
+  addViewerPlayer(clientId: string, name: string, steamId?: string): Player {
     const existing = Array.from(this.playerPool.values()).find((p) => p.id === clientId);
-    if (existing) return existing;
-    const player: Player = { id: clientId, name, flagged: false, status: "pending", team: null, socketId: null };
+    if (existing) {
+      if (steamId) existing.steamId = steamId;
+      return existing;
+    }
+    const player: Player = { id: clientId, name, flagged: false, status: "pending", team: null, socketId: null, steamId };
     this.playerPool.set(clientId, player);
     return player;
   }

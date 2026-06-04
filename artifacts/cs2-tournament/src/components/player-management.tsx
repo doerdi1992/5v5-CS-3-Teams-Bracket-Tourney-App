@@ -151,7 +151,14 @@ export default function PlayerManagement() {
                       className="flex items-center justify-between p-3 border border-border/50 rounded-md bg-background/30 hover:bg-background/50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="font-mono font-bold text-lg">{player.name}</span>
+                        <div className="flex flex-col">
+                          <span className="font-mono font-bold text-lg leading-tight">{player.name}</span>
+                          {(player as any).steamId && (
+                            <span className="font-mono text-[10px] text-muted-foreground mt-0.5">
+                              Steam64 ID: {(player as any).steamId}
+                            </span>
+                          )}
+                        </div>
                         {player.team && (
                           <Badge
                             variant="outline"
@@ -217,9 +224,16 @@ export default function PlayerManagement() {
                       key={player.id}
                       className="flex items-center justify-between p-2 border border-border bg-card rounded"
                     >
-                      <span className="font-mono text-sm truncate max-w-[120px]">
-                        {player.name}
-                      </span>
+                      <div className="flex flex-col truncate max-w-[150px]">
+                        <span className="font-mono text-sm font-bold truncate">
+                          {player.name}
+                        </span>
+                        {(player as any).steamId && (
+                          <span className="font-mono text-[9px] text-muted-foreground truncate">
+                            ID: {(player as any).steamId}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex gap-1">
                         <Button
                           size="icon"

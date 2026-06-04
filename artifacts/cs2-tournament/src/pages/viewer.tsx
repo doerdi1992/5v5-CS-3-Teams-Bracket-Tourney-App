@@ -15,7 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Server, Play } from "lucide-react";
+import { Copy, Server, Play, ExternalLink } from "lucide-react";
 
 const getSteamUrl = (connStr: string | null): string => {
   if (!connStr) return "";
@@ -44,6 +44,8 @@ export default function ViewerPage() {
   const [playerName, setPlayerName] = useState<string>("");
   const [isRegistered, setIsRegistered] = useState(false);
   const [nameInput, setNameInput] = useState("");
+  const [steamIdInput, setSteamIdInput] = useState("");
+  const [isRegistering, setIsRegistering] = useState(false);
   const [connectionString, setConnectionString] = useState<string | null>(null);
   const [showConnectionModal, setShowConnectionModal] = useState(false);
 
@@ -61,6 +63,10 @@ export default function ViewerPage() {
     }
     setClientId(storedClientId);
     const storedName = localStorage.getItem("cs2_player_name");
+    const storedSteamId = localStorage.getItem("cs2_steam_id");
+    if (storedSteamId) {
+      setSteamIdInput(storedSteamId);
+    }
     if (storedName) {
       setPlayerName(storedName);
       setIsRegistered(true);
@@ -83,21 +89,42 @@ export default function ViewerPage() {
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
     if (!nameInput.trim()) return;
-    registerMutation.mutate(
-      { data: { name: nameInput, clientId } },
-      {
-        onSuccess: () => {
-          localStorage.setItem("cs2_player_name", nameInput);
-          setPlayerName(nameInput);
-          setIsRegistered(true);
-          socket.emit("register", { clientId });
-          toast({ title: "Erfolgreich angemeldet", description: "Warte auf Admin-Freigabe." });
-        },
-        onError: (err: unknown) => {
-          toast({ variant: "destructive", title: "Anmeldung fehlgeschlagen", description: err instanceof Error ? err.message : "Fehler" });
-        },
-      }
-    );
+    if (steamIdInput.trim() && !/^\d{17}$/.test(steamIdInput.trim())) {
+      toast({ variant: "destructive", title: "Ungültige Steam64 ID", description: "Die Steam64 ID muss genau 17 Ziffern lang sein." });
+      return;
+    }
+
+    setIsRegistering(true);
+    fetch("/api/players/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: nameInput.trim(),
+        clientId,
+        steamId: steamIdInput.trim() || undefined
+      })
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || "Serverfehler");
+        }
+        return res.json();
+      })
+      .then(() => {
+        localStorage.setItem("cs2_player_name", nameInput.trim());
+        localStorage.setItem("cs2_steam_id", steamIdInput.trim());
+        setPlayerName(nameInput.trim());
+        setIsRegistered(true);
+        socket.emit("register", { clientId });
+        toast({ title: "Erfolgreich angemeldet", description: "Warte auf Admin-Freigabe." });
+      })
+      .catch((err) => {
+        toast({ variant: "destructive", title: "Anmeldung fehlgeschlagen", description: err.message });
+      })
+      .finally(() => {
+        setIsRegistering(false);
+      });
   };
 
   const copyConnectionString = () => {
@@ -127,9 +154,27 @@ export default function ViewerPage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleRegister} className="space-y-4">
-                <Input value={nameInput} onChange={(e) => setNameInput(e.target.value)} placeholder="Kampfname eingeben..." className="font-mono bg-background/50" />
-                <Button type="submit" className="w-full font-mono uppercase tracking-widest" disabled={registerMutation.isPending}>
-                  {registerMutation.isPending ? "Verbinde..." : "Anmelden"}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Kampfname (für Overlay)</label>
+                  <Input value={nameInput} onChange={(e) => setNameInput(e.target.value)} placeholder="Kampfname eingeben..." className="font-mono bg-background/50" />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Steam64 ID (17 Stellen, für Server-Join)</label>
+                    <a
+                      href="https://steamidfinder.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[9px] font-mono text-primary hover:underline flex items-center gap-0.5 transition-colors"
+                    >
+                      <ExternalLink className="w-2.5 h-2.5" />
+                      ID finden
+                    </a>
+                  </div>
+                  <Input value={steamIdInput} onChange={(e) => setSteamIdInput(e.target.value)} placeholder="z.B. 76561198000000000" className="font-mono bg-background/50" />
+                </div>
+                <Button type="submit" className="w-full font-mono uppercase tracking-widest" disabled={isRegistering}>
+                  {isRegistering ? "Verbinde..." : "Anmelden"}
                 </Button>
               </form>
             </CardContent>
