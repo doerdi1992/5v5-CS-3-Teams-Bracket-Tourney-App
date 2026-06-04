@@ -67,6 +67,7 @@ class Store {
   addViewerPlayer(clientId: string, name: string, steamId?: string): Player {
     const existing = Array.from(this.playerPool.values()).find((p) => p.id === clientId);
     if (existing) {
+      existing.name = name;
       if (steamId) existing.steamId = steamId;
       return existing;
     }

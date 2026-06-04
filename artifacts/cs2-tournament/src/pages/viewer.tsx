@@ -70,6 +70,7 @@ export default function ViewerPage() {
       setSteamIdInput(storedSteamId);
     }
     if (storedName) {
+      setNameInput(storedName);
       setPlayerName(storedName);
       setIsRegistered(true);
       socket.emit("register", { clientId: storedClientId });
@@ -229,11 +230,19 @@ export default function ViewerPage() {
                   <div className="space-y-1 text-center md:text-left">
                     <p className="text-sm font-mono text-muted-foreground uppercase">Dein Kampfname</p>
                     <h2 className="text-3xl font-bold font-mono">{playerName}</h2>
-                    <div className="mt-2 flex gap-2 justify-center md:justify-start flex-wrap">
+                    <div className="mt-2 flex gap-2 items-center justify-center md:justify-start flex-wrap">
                       <Badge variant={me?.status === "accepted" ? "default" : "secondary"} className="uppercase">
                         {me?.status === "accepted" ? "Akzeptiert" : me?.status === "rejected" ? "Abgelehnt" : "Ausstehend"}
                       </Badge>
                       {me?.flagged && <Badge variant="destructive" className="uppercase">Profi</Badge>}
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="text-xs text-muted-foreground hover:text-primary font-mono h-auto p-0 ml-2"
+                        onClick={() => setIsRegistered(false)}
+                      >
+                        (Ändern)
+                      </Button>
                     </div>
                   </div>
                   <div className="text-center md:text-right border border-border p-4 rounded-lg bg-background/50 min-w-[200px]">
