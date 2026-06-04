@@ -109,7 +109,7 @@ export default function BracketMapRoll() {
 
   // ── localStorage-backed state ──────────────────────────────────────────────
   const [mapPool, setMapPool] = useState(() =>
-    localStorage.getItem("cs2_map_pool") ?? "Mirage\nInferno\nDust2\nNuke\nOverpass\nAnubis\nVertigo\nAncient"
+    localStorage.getItem("cs2_map_pool") ?? "Cache\nMirage\nCobblestone"
   );
 
   const [isSpinning, setIsSpinning] = useState(false);

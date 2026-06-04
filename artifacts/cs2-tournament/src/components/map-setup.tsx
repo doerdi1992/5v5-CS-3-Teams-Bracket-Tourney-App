@@ -15,7 +15,7 @@ import { Plus, Trash2, Save, Image as ImageIcon, ExternalLink, Send, Eye, EyeOff
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
-const DEFAULT_MAPS = ["Mirage", "Inferno", "Dust2", "Nuke", "Overpass", "Anubis", "Vertigo", "Ancient"];
+const DEFAULT_MAPS = ["Cache", "Mirage", "Cobblestone"];
 
 interface MapRow {
   id: string;
