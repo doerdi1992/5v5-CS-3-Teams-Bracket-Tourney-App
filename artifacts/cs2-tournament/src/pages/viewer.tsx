@@ -93,7 +93,14 @@ export default function ViewerPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nameInput.trim()) return;
+    if (!nameInput.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Kampfname erforderlich",
+        description: "Bitte gib einen Kampfnamen ein, um dich anzumelden."
+      });
+      return;
+    }
 
     let resolvedSteamId = steamIdInput.trim();
 
