@@ -119,7 +119,7 @@ export default function AdminPage() {
                 </span>
               </div>
               <h1 className="text-2xl md:text-3xl font-black tracking-wider text-primary font-mono uppercase bg-gradient-to-r from-primary via-orange-400 to-primary bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(249,115,22,0.25)]">
-                {role === "admin" ? "ADMIN_KONSOLE" : "STREAMER_KONSOLE"}
+                TURNIER_KONSOLE
               </h1>
               <p className="text-muted-foreground font-mono uppercase text-[10px] tracking-[0.15em]">
                 Janaxf 5v5 CS2 Turnier-Verwaltung
@@ -128,22 +128,20 @@ export default function AdminPage() {
 
             {/* Action buttons */}
             <div className="flex items-center gap-3">
-              {role === "admin" && (
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 h-9 px-4 border-border/60 hover:border-primary/50 hover:bg-primary/5 transition-all">
-                      <Settings className="w-4 h-4 text-muted-foreground" />
-                      Einstellungen
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent className="sm:max-w-2xl w-[600px] overflow-y-auto bg-background border-l border-border p-6">
-                    <SheetHeader className="mb-6">
-                      <SheetTitle className="font-mono text-xl uppercase text-primary">Einstellungen</SheetTitle>
-                    </SheetHeader>
-                    <MapSetup />
-                  </SheetContent>
-                </Sheet>
-              )}
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 h-9 px-4 border-border/60 hover:border-primary/50 hover:bg-primary/5 transition-all">
+                    <Settings className="w-4 h-4 text-muted-foreground" />
+                    Einstellungen
+                  </Button>
+                </SheetTrigger>
+                <SheetContent className="sm:max-w-2xl w-[600px] overflow-y-auto bg-background border-l border-border p-6">
+                  <SheetHeader className="mb-6">
+                    <SheetTitle className="font-mono text-xl uppercase text-primary">Einstellungen</SheetTitle>
+                  </SheetHeader>
+                  <MapSetup />
+                </SheetContent>
+              </Sheet>
 
               <Button
                 variant="ghost"
@@ -162,19 +160,15 @@ export default function AdminPage() {
           </div>
         </header>
 
-        <Tabs key={role} defaultValue={role === "admin" ? "players" : "bracket"} className="w-full">
-          {role === "admin" && (
-            <TabsList className="grid w-full grid-cols-2 max-w-md mb-6 bg-card border border-border">
-              <TabsTrigger value="players" className="font-mono uppercase text-xs data-[state=active]:text-primary data-[state=active]:bg-background">Spielerverwaltung</TabsTrigger>
-              <TabsTrigger value="bracket" className="font-mono uppercase text-xs data-[state=active]:text-secondary data-[state=active]:bg-background">Bracket & Karten</TabsTrigger>
-            </TabsList>
-          )}
+        <Tabs defaultValue="players" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 max-w-md mb-6 bg-card border border-border">
+            <TabsTrigger value="players" className="font-mono uppercase text-xs data-[state=active]:text-primary data-[state=active]:bg-background">Spielerverwaltung</TabsTrigger>
+            <TabsTrigger value="bracket" className="font-mono uppercase text-xs data-[state=active]:text-secondary data-[state=active]:bg-background">Bracket & Karten</TabsTrigger>
+          </TabsList>
 
-          {role === "admin" && (
-            <TabsContent value="players" className="animate-in fade-in-50 zoom-in-95 duration-200">
-              <PlayerManagement />
-            </TabsContent>
-          )}
+          <TabsContent value="players" className="animate-in fade-in-50 zoom-in-95 duration-200">
+            <PlayerManagement />
+          </TabsContent>
 
           <TabsContent value="bracket" className="animate-in fade-in-50 zoom-in-95 duration-200">
             <BracketMapRoll />
