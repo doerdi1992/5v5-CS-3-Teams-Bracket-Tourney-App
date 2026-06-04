@@ -523,8 +523,90 @@ export default function MapSetup() {
             </Button>
           </div>
 
+          {/* Connection Test Buttons */}
+          <div className="grid grid-cols-3 gap-2 pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="font-mono text-[10px] uppercase tracking-wider border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+              onClick={async () => {
+                setRconStatus("⏳ RCON-Verbindung wird getestet...");
+                try {
+                  const pw = sessionStorage.getItem("cs2_admin_password") ?? "";
+                  const res = await fetch("/api/matchzy/test-rcon", {
+                    method: "POST",
+                    headers: { "x-admin-password": pw },
+                  });
+                  const data = await res.json() as any;
+                  if (data.success) {
+                    setRconStatus(`✅ RCON OK — ${data.host}:${data.port}\n${data.output || ""}`);
+                  } else {
+                    setRconStatus(`❌ RCON FEHLER: ${data.error}`);
+                  }
+                } catch (e: any) {
+                  setRconStatus(`❌ RCON FEHLER: ${e.message}`);
+                }
+              }}
+              disabled={!rconHost || !rconPassword}
+            >
+              🔌 RCON TEST
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="font-mono text-[10px] uppercase tracking-wider border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
+              onClick={async () => {
+                setRconStatus("⏳ FTP-Verbindung wird getestet...");
+                try {
+                  const pw = sessionStorage.getItem("cs2_admin_password") ?? "";
+                  const res = await fetch("/api/matchzy/test-ftp", {
+                    method: "POST",
+                    headers: { "x-admin-password": pw },
+                  });
+                  const data = await res.json() as any;
+                  if (data.success) {
+                    setRconStatus(`✅ FTP OK — ${data.message}`);
+                  } else {
+                    setRconStatus(`❌ FTP FEHLER: ${data.error}`);
+                  }
+                } catch (e: any) {
+                  setRconStatus(`❌ FTP FEHLER: ${e.message}`);
+                }
+              }}
+              disabled={loadMethod !== "ftp" || !ftpUser || !ftpPassword}
+            >
+              📁 FTP TEST
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="font-mono text-[10px] uppercase tracking-wider border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
+              onClick={async () => {
+                setRconStatus("⏳ MatchZy Config wird geladen...");
+                try {
+                  const pw = sessionStorage.getItem("cs2_admin_password") ?? "";
+                  const res = await fetch("/api/matchzy/preview-config", {
+                    headers: { "x-admin-password": pw },
+                  });
+                  const data = await res.json() as any;
+                  if (data.success) {
+                    setRconStatus(`📋 MatchZy JSON Preview:\n${JSON.stringify(data.config, null, 2)}`);
+                  } else {
+                    setRconStatus(`⚠️ Config Preview: ${data.error}`);
+                  }
+                } catch (e: any) {
+                  setRconStatus(`❌ Preview FEHLER: ${e.message}`);
+                }
+              }}
+            >
+              📋 CONFIG PREVIEW
+            </Button>
+          </div>
+
           {rconStatus && (
-            <div className="p-2.5 bg-black/40 border border-green-500/20 rounded font-mono text-[10px] text-green-400 break-all">
+            <div className="p-2.5 bg-black/40 border border-green-500/20 rounded font-mono text-[10px] text-green-400 break-all whitespace-pre-wrap max-h-48 overflow-y-auto">
               {rconStatus}
             </div>
           )}

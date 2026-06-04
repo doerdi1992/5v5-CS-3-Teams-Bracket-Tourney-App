@@ -343,4 +343,107 @@ router.post("/matchzy/start", checkStreamerAuth, async (_req, res) => {
   }
 });
 
+/**
+ * POST /api/matchzy/test-ftp
+ * Tests FTP connection by uploading a small test file
+ */
+router.post("/matchzy/test-ftp", checkAdminAuth, async (_req, res) => {
+  const settings = store.getServerSettings(false);
+
+  if (settings.loadMethod !== "ftp") {
+    res.status(400).json({ success: false, error: "Lademethode ist nicht auf FTP gesetzt." });
+    return;
+  }
+  if (!settings.ftpUser || !settings.ftpPassword) {
+    res.status(400).json({ success: false, error: "FTP-Benutzername und -Passwort sind erforderlich." });
+    return;
+  }
+
+  const ftpHost = settings.ftpHost || settings.rconHost;
+  const ftpPort = settings.ftpPort || 21;
+  const remoteDir = settings.ftpDir || "game/csgo/MatchZy/";
+  const testFileName = "ftp_test.txt";
+  const remotePath = remoteDir.endsWith("/") ? `${remoteDir}${testFileName}` : `${remoteDir}/${testFileName}`;
+  const testContent = `FTP Test OK — ${new Date().toISOString()}`;
+
+  console.log(`[FTP Test] Testing connection to ${ftpHost}:${ftpPort}...`);
+
+  try {
+    await FtpClient.upload(
+      { host: ftpHost, port: ftpPort, user: settings.ftpUser, pass: settings.ftpPassword },
+      remotePath,
+      testContent
+    );
+    console.log(`[FTP Test] SUCCESS — file uploaded to ${remotePath}`);
+    res.json({
+      success: true,
+      message: `FTP-Verbindung erfolgreich! Testdatei "${testFileName}" wurde hochgeladen nach: ${remotePath}`,
+      host: ftpHost,
+      port: ftpPort,
+      path: remotePath,
+    });
+  } catch (e: any) {
+    console.error(`[FTP Test] FAILED:`, e.message);
+    res.status(500).json({
+      success: false,
+      error: `FTP-Verbindung fehlgeschlagen: ${e.message}`,
+      host: ftpHost,
+      port: ftpPort,
+    });
+  }
+});
+
+/**
+ * POST /api/matchzy/test-rcon
+ * Tests RCON connection by sending a 'status' command
+ */
+router.post("/matchzy/test-rcon", checkAdminAuth, async (_req, res) => {
+  const settings = store.getServerSettings(false);
+
+  if (!settings.rconHost || !settings.rconPassword) {
+    res.status(400).json({ success: false, error: "RCON Host und Passwort sind erforderlich." });
+    return;
+  }
+
+  let host = settings.rconHost.trim();
+  if (host.includes(":")) host = host.split(":")[0];
+  const port = Number(settings.rconPort) || 27015;
+
+  console.log(`[RCON Test] Testing connection to ${host}:${port}...`);
+
+  try {
+    const output = await Rcon.send(host, port, settings.rconPassword, "status");
+    console.log(`[RCON Test] SUCCESS`);
+    res.json({
+      success: true,
+      message: "RCON-Verbindung erfolgreich!",
+      output: output.substring(0, 500), // Truncate for safety
+      host,
+      port,
+    });
+  } catch (e: any) {
+    console.error(`[RCON Test] FAILED:`, e.message);
+    res.status(500).json({
+      success: false,
+      error: `RCON-Verbindung fehlgeschlagen: ${e.message}`,
+      host,
+      port,
+    });
+  }
+});
+
+/**
+ * GET /api/matchzy/preview-config
+ * Preview the MatchZy JSON that would be generated for the current match (no upload)
+ */
+router.get("/matchzy/preview-config", checkAdminAuth, (_req, res) => {
+  try {
+    const { config } = generateMatchConfig();
+    res.json({ success: true, config });
+  } catch (e: any) {
+    res.status(400).json({ success: false, error: e.message });
+  }
+});
+
 export default router;
+
