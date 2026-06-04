@@ -185,7 +185,7 @@ const CarouselContent = React.forwardRef<
           orientation === "horizontal" ? "-ml-4" : "-mt-4 flex-col",
           className
         )}
-        ...props
+        {...props}
       />
     </div>
   )
@@ -208,7 +208,7 @@ const CarouselItem = React.forwardRef<
         orientation === "horizontal" ? "pl-4" : "pt-4",
         className
       )}
-      ...props
+      {...props}
     />
   )
 })
@@ -234,7 +234,7 @@ const CarouselPrevious = React.forwardRef<
       )}
       disabled={!canScrollPrev}
       onClick={scrollPrev}
-      ...props
+      {...props}
     >
       <ArrowLeft className="h-4 w-4" />
       <span className="sr-only">Previous slide</span>
@@ -263,7 +263,7 @@ const CarouselNext = React.forwardRef<
       )}
       disabled={!canScrollNext}
       onClick={scrollNext}
-      ...props
+      {...props}
     >
       <><ArrowRight className="h-4 w-4" /><span className="sr-only">Next slide</span></>
     </Button>

@@ -1,0 +1,12 @@
+{
+  "default": "de_mirage",
+  "mirage": "de_mirage",
+  "inferno": "de_inferno",
+  "dust2": "de_dust2",
+  "nuke": "de_nuke",
+  "overpass": "de_overpass",
+  "anubis": "de_anubis",
+  "vertigo": "de_vertigo",
+  "ancient": "de_ancient",
+  "cobblestone": "workshop/3329387648/de_cbble"
+}
