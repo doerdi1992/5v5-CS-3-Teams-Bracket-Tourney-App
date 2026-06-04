@@ -17,6 +17,7 @@ type CarouselProps = {
   plugins?: CarouselPlugin
   orientation?: "horizontal" | "vertical"
   setApi?: (api: CarouselApi) => void
+  soundUrl?: string // Added optional sound effect prop
 }
 
 type CarouselContextProps = {
@@ -50,6 +51,7 @@ const Carousel = React.forwardRef<
       opts,
       setApi,
       plugins,
+      soundUrl,
       className,
       children,
       ...props
@@ -66,6 +68,18 @@ const Carousel = React.forwardRef<
     const [canScrollPrev, setCanScrollPrev] = React.useState(false)
     const [canScrollNext, setCanScrollNext] = React.useState(false)
 
+    // Maintain a persistent Audio instance using a ref to avoid recreating elements
+    const audioRef = React.useRef<HTMLAudioElement | null>(null)
+
+    // Initialize the audio instance whenever soundUrl changes
+    React.useEffect(() => {
+      if (soundUrl) {
+        audioRef.current = new Audio(soundUrl)
+      } else {
+        audioRef.current = null
+      }
+    }, [soundUrl])
+
     const onSelect = React.useCallback((api: CarouselApi) => {
       if (!api) {
         return
@@ -73,6 +87,14 @@ const Carousel = React.forwardRef<
 
       setCanScrollPrev(api.canScrollPrev())
       setCanScrollNext(api.canScrollNext())
+
+      // Play the sound on every new selection slide
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0 // Reset audio to beginning if it's already playing
+        audioRef.current.play().catch((err) => {
+          console.warn("Audio playback failed or was blocked by browser autoplay policy:", err)
+        })
+      }
     }, [])
 
     const scrollPrev = React.useCallback(() => {
@@ -163,7 +185,7 @@ const CarouselContent = React.forwardRef<
           orientation === "horizontal" ? "-ml-4" : "-mt-4 flex-col",
           className
         )}
-        {...props}
+        ...props
       />
     </div>
   )
@@ -186,7 +208,7 @@ const CarouselItem = React.forwardRef<
         orientation === "horizontal" ? "pl-4" : "pt-4",
         className
       )}
-      {...props}
+      ...props
     />
   )
 })
@@ -204,7 +226,7 @@ const CarouselPrevious = React.forwardRef<
       variant={variant}
       size={size}
       className={cn(
-        "absolute  h-8 w-8 rounded-full",
+        "absolute h-8 w-8 rounded-full",
         orientation === "horizontal"
           ? "-left-12 top-1/2 -translate-y-1/2"
           : "-top-12 left-1/2 -translate-x-1/2 rotate-90",
@@ -212,7 +234,7 @@ const CarouselPrevious = React.forwardRef<
       )}
       disabled={!canScrollPrev}
       onClick={scrollPrev}
-      {...props}
+      ...props
     >
       <ArrowLeft className="h-4 w-4" />
       <span className="sr-only">Previous slide</span>
@@ -241,10 +263,9 @@ const CarouselNext = React.forwardRef<
       )}
       disabled={!canScrollNext}
       onClick={scrollNext}
-      {...props}
+      ...props
     >
-      <ArrowRight className="h-4 w-4" />
-      <span className="sr-only">Next slide</span>
+      <><ArrowRight className="h-4 w-4" /><span className="sr-only">Next slide</span></>
     </Button>
   )
 })
