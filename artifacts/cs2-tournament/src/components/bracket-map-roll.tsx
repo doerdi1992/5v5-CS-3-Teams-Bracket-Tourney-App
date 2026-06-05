@@ -95,6 +95,7 @@ export default function BracketMapRoll() {
   const [revealed, setRevealed] = useState(false);
   const [leftScore, setLeftScore] = useState<number>(0);
   const [rightScore, setRightScore] = useState<number>(0);
+  const [selectedWinner, setSelectedWinner] = useState<"A" | "B" | "C" | null>(null);
 
   // Persist to localStorage on change
   useEffect(() => { localStorage.setItem("cs2_map_pool", mapPool); }, [mapPool]);
@@ -237,6 +238,7 @@ export default function BracketMapRoll() {
         onSuccess: () => {
           setLeftScore(0);
           setRightScore(0);
+          setSelectedWinner(null);
           queryClient.invalidateQueries({ queryKey: getGetFullStateQueryKey() });
         }
       }
@@ -247,6 +249,7 @@ export default function BracketMapRoll() {
     resetBracketMut.mutate(undefined, {
       onSuccess: () => {
         toast({ title: "Bracket zurückgesetzt", description: "Turnier-Status gelöscht." });
+        setSelectedWinner(null);
         queryClient.invalidateQueries({ queryKey: getGetFullStateQueryKey() });
       },
     });
@@ -387,159 +390,216 @@ export default function BracketMapRoll() {
                     });
                   }
                   return list;
-                })().map(({ label, matchNum, left, right, winner, leftTeam, rightTeam, rounds }) => (
-                  <div
-                     key={label}
-                     className={`p-4 border rounded-md relative overflow-hidden ${bracket.currentMatch === matchNum ? "border-primary bg-primary/5" : "border-border/50"}`}
-                  >
-                    {bracket.currentMatch === matchNum && (
-                      <div className="absolute top-0 left-0 w-1 h-full bg-primary animate-pulse" />
-                    )}
-                    <div className="flex justify-between items-center font-mono mb-2">
-                      <span className="text-muted-foreground text-xs uppercase">{label}</span>
-                      <div className="flex items-center gap-2">
-
-                        {/* BO3 toggle — only on Tiebreaker (Match 4, after 3-way tie) */}
-                        {matchNum === 4 && (
-                          <div className="flex items-center gap-1.5">
-                            <span className={`text-[10px] font-mono uppercase tracking-wider ${(bracket.match4BestOf ?? 1) === 1 ? "text-foreground" : "text-muted-foreground/50"}`}>BO1</span>
-                            <Switch
-                              checked={(bracket.match4BestOf ?? 1) === 3}
-                              onCheckedChange={(checked) => handleSetTiebreakerFormat(checked ? 3 : 1)}
-                              className="scale-75"
-                              disabled={!!bracket.match4Winner}
-                            />
-                            <span className={`text-[10px] font-mono uppercase tracking-wider ${(bracket.match4BestOf ?? 1) === 3 ? "text-foreground" : "text-muted-foreground/50"}`}>BO3</span>
-                          </div>
-                        )}
-                        {winner && (
-                          <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/30">
-                            SIEGER: TEAM {winner}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between text-xl font-black font-mono">
-                      <div className="flex flex-col items-start w-2/5">
+                })().map(({ label, matchNum, left, right, winner, leftTeam, rightTeam, rounds }) => {
+                  const isActive = bracket.currentMatch === matchNum;
+                  return (
+                    <div
+                      key={label}
+                      className={`relative overflow-hidden transition-all duration-300 ease-in-out ${
+                        isActive
+                          ? "p-5 border-2 border-primary bg-primary/10 rounded-xl shadow-[0_0_20px_rgba(249,115,22,0.15)] scale-100 z-10"
+                          : "p-3 border border-border/30 bg-background/20 rounded-lg opacity-60 hover:opacity-90 scale-[0.96] blur-[0.2px]"
+                      }`}
+                    >
+                      {isActive && (
+                        <div className="absolute top-0 left-0 w-1.5 h-full bg-primary animate-pulse" />
+                      )}
+                      <div className="flex justify-between items-center font-mono mb-2">
+                        <span className={`uppercase font-bold ${isActive ? "text-primary text-xs" : "text-muted-foreground/50 text-[10px]"}`}>
+                          {label}
+                        </span>
                         <div className="flex items-center gap-2">
-                          <span className={winner === leftTeam && winner ? teamColorClass(leftTeam) : ""}>{left}</span>
-                          {rounds && <span className="text-sm font-bold text-muted-foreground">({rounds.left})</span>}
+                          {matchNum === 4 && (
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-[10px] font-mono uppercase tracking-wider ${(bracket.match4BestOf ?? 1) === 1 ? "text-foreground" : "text-muted-foreground/50"}`}>BO1</span>
+                              <Switch
+                                checked={(bracket.match4BestOf ?? 1) === 3}
+                                onCheckedChange={(checked) => handleSetTiebreakerFormat(checked ? 3 : 1)}
+                                className="scale-75"
+                                disabled={!!bracket.match4Winner}
+                              />
+                              <span className={`text-[10px] font-mono uppercase tracking-wider ${(bracket.match4BestOf ?? 1) === 3 ? "text-foreground" : "text-muted-foreground/50"}`}>BO3</span>
+                            </div>
+                          )}
+                          {winner && (
+                            <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                              SIEGER: TEAM {winner}
+                            </span>
+                          )}
                         </div>
-                        <span className="text-[10px] text-muted-foreground/60 font-normal mt-0.5 truncate w-full" title={getTeamPlayersString(leftTeam)}>
-                          {getTeamPlayersString(leftTeam) || "Keine Spieler"}
-                        </span>
                       </div>
-                      <span className="text-muted-foreground text-sm">VS</span>
-                      <div className="flex flex-col items-end w-2/5 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {rounds && <span className="text-sm font-bold text-muted-foreground">({rounds.right})</span>}
-                          <span className={winner === rightTeam && winner ? teamColorClass(rightTeam) : ""}>{right}</span>
+                      <div className={`flex items-center justify-between font-mono ${isActive ? "text-2xl font-black" : "text-base font-bold"}`}>
+                        <div className="flex flex-col items-start w-2/5">
+                          <div className="flex items-center gap-2">
+                            <span className={winner === leftTeam && winner ? teamColorClass(leftTeam) : ""}>{left}</span>
+                            {rounds && (
+                              <span className={`font-bold ${isActive ? "text-base text-muted-foreground" : "text-xs text-muted-foreground/50"}`}>
+                                ({rounds.left})
+                              </span>
+                            )}
+                          </div>
+                          {isActive && (
+                            <span className="text-[10px] text-muted-foreground/60 font-normal mt-0.5 truncate w-full" title={getTeamPlayersString(leftTeam)}>
+                              {getTeamPlayersString(leftTeam) || "Keine Spieler"}
+                            </span>
+                          )}
                         </div>
-                        <span className="text-[10px] text-muted-foreground/60 font-normal mt-0.5 truncate w-full" title={getTeamPlayersString(rightTeam)}>
-                          {getTeamPlayersString(rightTeam) || "Keine Spieler"}
-                        </span>
+                        <span className={`text-muted-foreground ${isActive ? "text-sm" : "text-xs opacity-50"}`}>VS</span>
+                        <div className="flex flex-col items-end w-2/5 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {rounds && (
+                              <span className={`font-bold ${isActive ? "text-base text-muted-foreground" : "text-xs text-muted-foreground/50"}`}>
+                                ({rounds.right})
+                              </span>
+                            )}
+                            <span className={winner === rightTeam && winner ? teamColorClass(rightTeam) : ""}>{right}</span>
+                          </div>
+                          {isActive && (
+                            <span className="text-[10px] text-muted-foreground/60 font-normal mt-0.5 truncate w-full" title={getTeamPlayersString(rightTeam)}>
+                              {getTeamPlayersString(rightTeam) || "Keine Spieler"}
+                            </span>
+                          )}
+                        </div>
                       </div>
+
+                      {matchNum === 4 && (bracket.match4BestOf ?? 1) === 3 && bracket.match4 && !bracket.match4Winner && (
+                        <div className={`flex items-center justify-center gap-6 mt-3 pt-3 border-t border-border/30 ${isActive ? "" : "scale-90 opacity-70"}`}>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-xs font-mono uppercase ${teamColorClass(leftTeam)}`}>
+                              TEAM {leftTeam ?? "?"}
+                            </span>
+                            <div className="flex gap-1">
+                              {[0, 1].map((i) => (
+                                <div
+                                  key={`l${i}`}
+                                  className="w-2.5 h-2.5 rounded-full border"
+                                  style={{
+                                    backgroundColor: i < (bracket.match4Score?.left ?? 0) ? teamColor(leftTeam) : "transparent",
+                                    borderColor: teamColor(leftTeam),
+                                    opacity: i < (bracket.match4Score?.left ?? 0) ? 1 : 0.3,
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <span className="text-muted-foreground text-xs font-mono">{(bracket.match4Score?.left ?? 0)} — {(bracket.match4Score?.right ?? 0)}</span>
+                          <div className="flex items-center gap-1.5">
+                            <div className="flex gap-1">
+                              {[0, 1].map((i) => (
+                                <div
+                                  key={`r${i}`}
+                                  className="w-2.5 h-2.5 rounded-full border"
+                                  style={{
+                                    backgroundColor: i < (bracket.match4Score?.right ?? 0) ? teamColor(rightTeam) : "transparent",
+                                    borderColor: teamColor(rightTeam),
+                                    opacity: i < (bracket.match4Score?.right ?? 0) ? 1 : 0.3,
+                                  }}
+                                />
+                              ))}
+                            </div>
+                            <span className={`text-xs font-mono uppercase ${teamColorClass(rightTeam)}`}>
+                              TEAM {rightTeam ?? "?"}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
-
-                    {/* BO3 score display — only for Tiebreaker (Match 4) */}
-
-                    {matchNum === 4 && (bracket.match4BestOf ?? 1) === 3 && bracket.match4 && !bracket.match4Winner && (
-                      <div className="flex items-center justify-center gap-6 mt-3 pt-3 border-t border-border/30">
-                        <div className="flex items-center gap-1.5">
-                          <span className={`text-xs font-mono uppercase ${teamColorClass(leftTeam)}`}>
-                            TEAM {leftTeam ?? "?"}
-                          </span>
-                          <div className="flex gap-1">
-                            {[0, 1].map((i) => (
-                              <div
-                                key={`l${i}`}
-                                className="w-2.5 h-2.5 rounded-full border"
-                                style={{
-                                  backgroundColor: i < (bracket.match4Score?.left ?? 0) ? teamColor(leftTeam) : "transparent",
-                                  borderColor: teamColor(leftTeam),
-                                  opacity: i < (bracket.match4Score?.left ?? 0) ? 1 : 0.3,
-                                }}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                        <span className="text-muted-foreground text-xs font-mono">{(bracket.match4Score?.left ?? 0)} — {(bracket.match4Score?.right ?? 0)}</span>
-                        <div className="flex items-center gap-1.5">
-                          <div className="flex gap-1">
-                            {[0, 1].map((i) => (
-                              <div
-                                key={`r${i}`}
-                                className="w-2.5 h-2.5 rounded-full border"
-                                style={{
-                                  backgroundColor: i < (bracket.match4Score?.right ?? 0) ? teamColor(rightTeam) : "transparent",
-                                  borderColor: teamColor(rightTeam),
-                                  opacity: i < (bracket.match4Score?.right ?? 0) ? 1 : 0.3,
-                                }}
-                              />
-                            ))}
-                          </div>
-                          <span className={`text-xs font-mono uppercase ${teamColorClass(rightTeam)}`}>
-                            TEAM {rightTeam ?? "?"}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
 
                 {bracket.currentMatch <= 4 && currentTeams.length > 0 && (
-                  <div className="pt-4 border-t border-border">
-                    <p className="font-mono text-xs text-muted-foreground mb-3 uppercase">
+                  <div className="pt-4 border-t border-border space-y-3">
+                    <p className="font-mono text-xs text-muted-foreground mb-1 uppercase">
                       {bracket.currentMatch === 4 && (bracket.match4BestOf ?? 1) === 3
                         ? `Tiebreaker Partie ${(bracket.match4Score?.left ?? 0) + (bracket.match4Score?.right ?? 0) + 1} von max. 3 — Sieger wählen`
                         : "Aktive Partie auflösen"
                       }
                     </p>
 
-                    <div className="flex gap-4 items-center mb-4 bg-background/50 p-3 rounded-lg border border-border/40 animate-in fade-in slide-in-from-top-1 duration-200">
-                      <div className="flex-1 space-y-1">
-                        <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                          Runden TEAM {currentTeams[0]}
-                        </label>
-                        <Input
-                          type="number"
-                          min={0}
-                          value={leftScore || ""}
-                          onChange={(e) => setLeftScore(Number(e.target.value))}
-                          placeholder="z.B. 13"
-                          className="font-mono bg-background/50 h-9 text-sm"
-                        />
-                      </div>
-                      <div className="text-muted-foreground text-xs font-mono self-end pb-2">:</div>
-                      <div className="flex-1 space-y-1">
-                        <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground text-right block">
-                          Runden TEAM {currentTeams[1]}
-                        </label>
-                        <Input
-                          type="number"
-                          min={0}
-                          value={rightScore || ""}
-                          onChange={(e) => setRightScore(Number(e.target.value))}
-                          placeholder="z.B. 8"
-                          className="font-mono bg-background/50 h-9 text-sm text-right"
-                        />
-                      </div>
+                    <div className="flex gap-2">
+                      {currentTeams.map((t) => {
+                        const isSelected = selectedWinner === t;
+                        return (
+                          <Button
+                            key={t}
+                            className={`flex-1 font-mono uppercase transition-all duration-300 ${
+                              isSelected
+                                ? "bg-primary/10 border-primary text-primary"
+                                : "border-border/40 hover:bg-white/5"
+                            }`}
+                            variant="outline"
+                            disabled={setWinnerMut.isPending}
+                            onClick={() => {
+                              setSelectedWinner(isSelected ? null : (t as "A" | "B" | "C"));
+                              setLeftScore(0);
+                              setRightScore(0);
+                            }}
+                            style={{ 
+                              borderColor: isSelected ? teamColor(t) : undefined, 
+                              color: isSelected ? teamColor(t) : undefined 
+                            }}
+                          >
+                            Team {t} gewinnt
+                          </Button>
+                        );
+                      })}
                     </div>
 
-                    <div className="flex gap-2">
-                      {currentTeams.map((t) => (
-                        <Button
-                          key={t}
-                          className="flex-1 font-mono uppercase"
-                          variant="outline"
-                          disabled={setWinnerMut.isPending}
-                          onClick={() => handleSetWinner(t as "A" | "B" | "C")}
-                          style={{ borderColor: `${teamColor(t)}33`, color: teamColor(t) }}
-                        >
-                          Team {t} gewinnt
-                        </Button>
-                      ))}
-                    </div>
+                    {selectedWinner && (
+                      <div className="bg-background/40 p-4 rounded-xl border border-border/40 animate-in fade-in slide-in-from-top-2 duration-300 space-y-3">
+                        <div className="flex gap-4 items-center">
+                          <div className="flex-1 space-y-1">
+                            <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                              Runden TEAM {currentTeams[0]}
+                            </label>
+                            <Input
+                              type="number"
+                              min={0}
+                              value={leftScore || ""}
+                              onChange={(e) => setLeftScore(Number(e.target.value))}
+                              placeholder="z.B. 13"
+                              className="font-mono bg-background/50 h-9 text-sm"
+                              autoFocus
+                            />
+                          </div>
+                          <div className="text-muted-foreground text-xs font-mono self-end pb-2.5">:</div>
+                          <div className="flex-1 space-y-1">
+                            <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground text-right block">
+                              Runden TEAM {currentTeams[1]}
+                            </label>
+                            <Input
+                              type="number"
+                              min={0}
+                              value={rightScore || ""}
+                              onChange={(e) => setRightScore(Number(e.target.value))}
+                              placeholder="z.B. 8"
+                              className="font-mono bg-background/50 h-9 text-sm text-right"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 pt-1">
+                          <Button
+                            className="flex-1 font-mono uppercase bg-primary hover:bg-primary/95 text-white text-xs h-9"
+                            disabled={setWinnerMut.isPending}
+                            onClick={() => handleSetWinner(selectedWinner)}
+                          >
+                            Bestätigen
+                          </Button>
+                          <Button
+                            className="font-mono uppercase text-xs h-9 text-muted-foreground hover:text-foreground"
+                            variant="ghost"
+                            onClick={() => {
+                              setSelectedWinner(null);
+                              setLeftScore(0);
+                              setRightScore(0);
+                            }}
+                          >
+                            Abbrechen
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
