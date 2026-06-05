@@ -195,14 +195,20 @@ export default function ViewerPage() {
   const rolledMap = bracket?.rolledMap ?? null;
   const mapImageUrl = rolledMap ? (mapImages[rolledMap] ?? null) : null;
 
+  const getMatchTeams = (matchString: string | null | undefined): string[] => {
+    if (!matchString) return [];
+    const parts = matchString.split(" ");
+    return parts.length >= 3 ? [parts[0], parts[2]] : [];
+  };
+
   const currentTeams =
-    bracket?.currentMatch === 1 ? ["A", "B"]
-    : bracket?.currentMatch === 2 ? (bracket.match1Winner === "A" ? ["B", "C"] : ["A", "C"])
-    : bracket?.currentMatch === 3 ? (bracket.match1Winner === "A" ? ["A", "C"] : ["B", "C"])
-    : bracket?.currentMatch === 4 && bracket.match4 ? [bracket.match4.split(" ")[0], bracket.match4.split(" ")[2]]
+    bracket?.currentMatch === 1 ? getMatchTeams(bracket?.match1)
+    : bracket?.currentMatch === 2 ? getMatchTeams(bracket?.match2)
+    : bracket?.currentMatch === 3 ? getMatchTeams(bracket?.match3)
+    : bracket?.currentMatch === 4 ? getMatchTeams(bracket?.match4)
     : [];
 
-  const isMyMatchActive = me?.team && currentTeams.includes(me.team) && rolledMap;
+  const isMyMatchActive = !!(me?.team && currentTeams.includes(me.team));
 
   useEffect(() => {
     if (isRegistered && bracket && players) {
