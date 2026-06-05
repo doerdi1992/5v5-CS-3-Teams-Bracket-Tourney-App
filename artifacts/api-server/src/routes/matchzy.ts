@@ -8,19 +8,34 @@ import { checkAdminAuth, checkStreamerAuth } from "../middlewares/auth.js";
 
 const router: IRouter = Router();
 
-// Helper to resolve map keys using the map_registry.json
+// Map registry: display name → CS2 map identifier (including workshop IDs)
+const BUILTIN_MAP_REGISTRY: Record<string, string> = {
+  "default": "de_mirage",
+  "mirage": "de_mirage",
+  "inferno": "de_inferno",
+  "dust2": "de_dust2",
+  "nuke": "de_nuke",
+  "overpass": "de_overpass",
+  "anubis": "de_anubis",
+  "vertigo": "de_vertigo",
+  "ancient": "de_ancient",
+  "cobblestone": "workshop/3329387648/de_cbble",
+  "cache": "de_cache",
+};
+
+// Helper to resolve map keys using the map_registry.json (with built-in fallback)
 function resolveMapPath(mapKey: string): string {
+  const key = mapKey.toLowerCase().trim();
   try {
     const registryPath = path.resolve(process.cwd(), "artifacts/matchzy-generator/map_registry.json");
     if (fs.existsSync(registryPath)) {
       const registry = JSON.parse(fs.readFileSync(registryPath, "utf8"));
-      const key = mapKey.toLowerCase().trim();
-      return registry[key] || registry["default"] || mapKey;
+      if (registry[key]) return registry[key];
     }
   } catch (e) {
-    console.error("Error loading map registry in Node:", e);
+    // Fall through to built-in
   }
-  return mapKey;
+  return BUILTIN_MAP_REGISTRY[key] || BUILTIN_MAP_REGISTRY["default"] || mapKey;
 }
 
 // Generate the configuration JSON compliant with MatchZy documentation schema
@@ -113,9 +128,9 @@ export function generateMatchConfig() {
       maplist: maplist,
       skip_veto: skipVeto,
       players_per_team: 5,
-      min_players_to_ready: 1,
+      min_players_to_ready: 2,
       min_spectators_to_ready: 0,
-      clinch_series: true,
+      series_can_clinch: true,
       map_sides: mapSides,
       team1: {
         name: `TEAM ${t1Letter}`,
