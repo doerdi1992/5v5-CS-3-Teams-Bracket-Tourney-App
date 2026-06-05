@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { RefreshCw, Send, Trophy, Eye, EyeOff, Dices, Zap, Save, Crown, Server, Play, Copy, Loader2 } from "lucide-react";
+import { RefreshCw, Send, Trophy, Eye, EyeOff, Dices, Zap, Save, Crown, Server, Play, Copy, Loader2, Check } from "lucide-react";
 
 // ─── Animation constants ─────────────────────────────────────────────────────
 const WINNER_IDX = 68;        // winner tile index in the strip
@@ -125,6 +125,33 @@ export default function BracketMapRoll() {
 
   // Persist to localStorage on change
   useEffect(() => { localStorage.setItem("cs2_map_pool", mapPool); }, [mapPool]);
+
+  const [manualSelection, setManualSelection] = useState(() => 
+    localStorage.getItem("cs2_manual_selection") === "true"
+  );
+  const [selectedManualMap, setSelectedManualMap] = useState<string>("");
+
+  useEffect(() => {
+    localStorage.setItem("cs2_manual_selection", String(manualSelection));
+  }, [manualSelection]);
+
+  const handleManualConfirmMap = (winner: string) => {
+    if (!winner) return;
+    fetch("/api/maps/confirm-roll", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ map: winner }),
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error(`Server: ${r.status}`);
+        toast({ title: "Karte ausgewählt", description: `${winner} wurde manuell bestätigt.` });
+        queryClient.invalidateQueries({ queryKey: getGetFullStateQueryKey() });
+      })
+      .catch((err) => {
+        console.error("[manual-confirm] failed:", err);
+        toast({ title: "Fehler", description: `Kartenauswahl fehlgeschlagen: ${err.message}`, variant: "destructive" });
+      });
+  };
 
   // ── Refs ────────────────────────────────────────────────────────────────────
   const stripRef = useRef<HTMLDivElement>(null);
@@ -653,10 +680,18 @@ export default function BracketMapRoll() {
                 <Dices className="w-5 h-5" />
                 KARTEN-AUSWAHL
               </CardTitle>
-              <span className="flex items-center gap-1.5 text-[10px] font-mono text-green-500/70 uppercase tracking-wider">
-                <Save className="w-3 h-3" />
-                Auto-gespeichert
-              </span>
+              <div className="flex items-center gap-2 bg-background/60 px-3 py-1.5 rounded-lg border border-border/40">
+                <span className={`text-[10px] font-mono uppercase tracking-wider ${!manualSelection ? "text-primary font-bold" : "text-muted-foreground"}`}>Glücksrad</span>
+                <Switch
+                  checked={manualSelection}
+                  onCheckedChange={(checked) => {
+                    setManualSelection(checked);
+                    setSelectedManualMap("");
+                  }}
+                  className="scale-75"
+                />
+                <span className={`text-[10px] font-mono uppercase tracking-wider ${manualSelection ? "text-secondary font-bold" : "text-muted-foreground"}`}>Manuell</span>
+              </div>
             </div>
             <CardDescription className="font-mono text-xs">Pool (eine pro Zeile oder kommagetrennt)</CardDescription>
           </CardHeader>
@@ -665,114 +700,172 @@ export default function BracketMapRoll() {
               value={mapPool}
               onChange={(e) => setMapPool(e.target.value)}
               className="font-mono text-sm bg-background/50 min-h-[80px] resize-none"
-              disabled={isSpinning}
+              disabled={isSpinning || !!bracket?.rolledMap}
             />
 
-            {/* Reel container */}
-            <div
-              ref={containerRef}
-              className="relative w-full h-28 overflow-hidden rounded-lg border border-border/60 bg-black/70"
-            >
-              {/* Centre selector arrows */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-                <div className="w-0 h-0" style={{ borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderTop: "10px solid #f97316" }} />
-              </div>
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-                <div className="w-0 h-0" style={{ borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderBottom: "10px solid #f97316" }} />
-              </div>
-              {/* Centre line */}
-              <div className="absolute top-0 bottom-0 left-1/2 -translate-x-px w-0.5 bg-primary/50 z-10 pointer-events-none" />
-
-              {stripItems.length > 0 ? (
-                <div ref={stripRef} className="absolute top-0 left-0 flex items-center h-full" style={{ willChange: "transform" }}>
-                  {stripItems.map((map, i) => {
-                    const isWinner = revealed && i === WINNER_IDX;
-                    const imgUrl = mapImages[map];
-                    return (
-                      <div
-                        key={i}
-                        className="flex-shrink-0 relative flex items-center justify-center rounded overflow-hidden font-mono font-black text-xs uppercase tracking-wider"
-                        style={{
-                          width: ITEM_WIDTH - 12,
-                          height: 84,
-                          marginRight: 12,
-                          border: isWinner ? "1.5px solid rgba(249,115,22,0.9)" : "1px solid rgba(255,255,255,0.07)",
-                          boxShadow: isWinner ? "0 0 20px rgba(249,115,22,0.45)" : "none",
-                          background: "rgba(8,12,22,0.8)",
-                        }}
-                      >
-                        {/* Map image background */}
-                        {imgUrl && (
-                          <div
-                            className="absolute inset-0 bg-cover bg-center"
-                            style={{ backgroundImage: `url(${imgUrl})`, opacity: isWinner ? 0.5 : 0.28 }}
-                          />
-                        )}
-                        {/* Colour tint overlay */}
-                        <div
-                          className="absolute inset-0"
-                          style={{ background: isWinner ? "rgba(249,115,22,0.12)" : "rgba(8,12,22,0.45)" }}
-                        />
-                        {/* Map name */}
-                        <span
-                          className="relative z-10 text-center px-1 leading-tight"
-                          style={{
-                            color: isWinner ? "#f97316" : "#94a3b8",
-                            textShadow: isWinner ? "0 0 10px rgba(249,115,22,0.7)" : "none",
-                            fontSize: "0.72rem",
-                          }}
+            {manualSelection ? (
+              /* ── Manual Selection View ── */
+              !bracket?.rolledMap ? (
+                <div className="space-y-3 py-2 flex-grow animate-in fade-in duration-200">
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground block">
+                    Gezogene Karte auswählen
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {parseMaps(mapPool).map((m) => {
+                      const isSelected = selectedManualMap === m;
+                      return (
+                        <Button
+                          key={m}
+                          variant={isSelected ? "default" : "outline"}
+                          className={`font-mono text-xs uppercase h-11 transition-all ${
+                            isSelected 
+                              ? "bg-secondary hover:bg-secondary/90 text-white border-secondary shadow-[0_0_12px_rgba(236,158,14,0.3)]" 
+                              : "border-border/40 hover:bg-white/5"
+                          }`}
+                          onClick={() => setSelectedManualMap(m)}
                         >
-                          {map}
-                        </span>
-                      </div>
-                    );
-                  })}
+                          {m}
+                        </Button>
+                      );
+                    })}
+                  </div>
                 </div>
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  {bracket?.rolledMap ? (
-                    <span className="font-mono font-black text-2xl uppercase tracking-widest text-primary drop-shadow-[0_0_12px_rgba(249,115,22,0.6)]">
-                      {bracket.rolledMap}
-                    </span>
-                  ) : (
-                    <span className="font-mono text-sm text-muted-foreground tracking-widest uppercase">Noch keine Karte</span>
+                /* Selected Map Display when in manual mode */
+                <div className="flex items-center gap-4 py-3 border-t border-border/30 mt-2 animate-in fade-in duration-200">
+                  {mapImages[bracket.rolledMap] && (
+                    <div className="w-24 h-14 rounded overflow-hidden border border-primary/30 flex-shrink-0">
+                      <img src={mapImages[bracket.rolledMap]} alt={bracket.rolledMap} className="w-full h-full object-cover" />
+                    </div>
                   )}
+                  <div>
+                    <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest">Ausgewählte Karte (Manuell)</p>
+                    <p className="font-mono font-black text-2xl text-primary drop-shadow-[0_0_12px_rgba(249,115,22,0.45)] uppercase tracking-widest">
+                      {bracket.rolledMap}
+                    </p>
+                  </div>
                 </div>
-              )}
-              {/* Vignette */}
-              <div
-                className="absolute inset-0 pointer-events-none z-10"
-                style={{ background: "linear-gradient(to right, rgba(5,8,18,0.9) 0%, transparent 15%, transparent 85%, rgba(5,8,18,0.9) 100%)" }}
-              />
-            </div>
+              )
+            ) : (
+              /* ── Automatic Spinner View ── */
+              <>
+                <div
+                  ref={containerRef}
+                  className="relative w-full h-28 overflow-hidden rounded-lg border border-border/60 bg-black/70"
+                >
+                  {/* Centre selector arrows */}
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+                    <div className="w-0 h-0" style={{ borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderTop: "10px solid #f97316" }} />
+                  </div>
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+                    <div className="w-0 h-0" style={{ borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderBottom: "10px solid #f97316" }} />
+                  </div>
+                  {/* Centre line */}
+                  <div className="absolute top-0 bottom-0 left-1/2 -translate-x-px w-0.5 bg-primary/50 z-10 pointer-events-none" />
 
-            {/* Revealed map name + image */}
-            {(revealed || (!isSpinning && bracket?.rolledMap && stripItems.length === 0)) && bracket?.rolledMap && (
-              <div className="flex items-center gap-4 py-2 border-t border-border/30 mt-2">
-                {mapImages[bracket.rolledMap] && (
-                  <div className="w-24 h-14 rounded overflow-hidden border border-primary/30 flex-shrink-0">
-                    <img src={mapImages[bracket.rolledMap]} alt={bracket.rolledMap} className="w-full h-full object-cover" />
+                  {stripItems.length > 0 ? (
+                    <div ref={stripRef} className="absolute top-0 left-0 flex items-center h-full" style={{ willChange: "transform" }}>
+                      {stripItems.map((map, i) => {
+                        const isWinner = revealed && i === WINNER_IDX;
+                        const imgUrl = mapImages[map];
+                        return (
+                          <div
+                            key={i}
+                            className="flex-shrink-0 relative flex items-center justify-center rounded overflow-hidden font-mono font-black text-xs uppercase tracking-wider"
+                            style={{
+                              width: ITEM_WIDTH - 12,
+                              height: 84,
+                              marginRight: 12,
+                              border: isWinner ? "1.5px solid rgba(249,115,22,0.9)" : "1px solid rgba(255,255,255,0.07)",
+                              boxShadow: isWinner ? "0 0 20px rgba(249,115,22,0.45)" : "none",
+                              background: "rgba(8,12,22,0.8)",
+                            }}
+                          >
+                            {/* Map image background */}
+                            {imgUrl && (
+                              <div
+                                className="absolute inset-0 bg-cover bg-center"
+                                style={{ backgroundImage: `url(${imgUrl})`, opacity: isWinner ? 0.5 : 0.28 }}
+                              />
+                            )}
+                            {/* Colour tint overlay */}
+                            <div
+                              className="absolute inset-0"
+                              style={{ background: isWinner ? "rgba(249,115,22,0.12)" : "rgba(8,12,22,0.45)" }}
+                            />
+                            {/* Map name */}
+                            <span
+                              className="relative z-10 text-center px-1 leading-tight"
+                              style={{
+                                color: isWinner ? "#f97316" : "#94a3b8",
+                                textShadow: isWinner ? "0 0 10px rgba(249,115,22,0.7)" : "none",
+                                fontSize: "0.72rem",
+                              }}
+                            >
+                              {map}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      {bracket?.rolledMap ? (
+                        <span className="font-mono font-black text-2xl uppercase tracking-widest text-primary drop-shadow-[0_0_12px_rgba(249,115,22,0.6)]">
+                          {bracket.rolledMap}
+                        </span>
+                      ) : (
+                        <span className="font-mono text-sm text-muted-foreground tracking-widest uppercase">Noch keine Karte</span>
+                      )}
+                    </div>
+                  )}
+                  {/* Vignette */}
+                  <div
+                    className="absolute inset-0 pointer-events-none z-10"
+                    style={{ background: "linear-gradient(to right, rgba(5,8,18,0.9) 0%, transparent 15%, transparent 85%, rgba(5,8,18,0.9) 100%)" }}
+                  />
+                </div>
+
+                {/* Revealed map name + image */}
+                {(revealed || (!isSpinning && bracket?.rolledMap && stripItems.length === 0)) && bracket?.rolledMap && (
+                  <div className="flex items-center gap-4 py-2 border-t border-border/30 mt-2">
+                    {mapImages[bracket.rolledMap] && (
+                      <div className="w-24 h-14 rounded overflow-hidden border border-primary/30 flex-shrink-0">
+                        <img src={mapImages[bracket.rolledMap]} alt={bracket.rolledMap} className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest">Ausgewählte Karte</p>
+                      <p className="font-mono font-black text-2xl text-primary drop-shadow-[0_0_12px_rgba(249,115,22,0.45)] uppercase tracking-widest animate-in fade-in zoom-in-95 duration-300">
+                        {bracket.rolledMap}
+                      </p>
+                    </div>
                   </div>
                 )}
-                <div>
-                  <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest">Ausgewählte Karte</p>
-                  <p className="font-mono font-black text-2xl text-primary drop-shadow-[0_0_12px_rgba(249,115,22,0.45)] uppercase tracking-widest animate-in fade-in zoom-in-95 duration-300">
-                    {bracket.rolledMap}
-                  </p>
-                </div>
-              </div>
+              </>
             )}
 
             <div className="mt-auto pt-4 w-full">
-              {(!bracket?.rolledMap || isSpinning) ? (
-                <Button
-                  className="w-full font-mono text-base h-12 uppercase tracking-widest"
-                  onClick={handleRollMap}
-                  disabled={isSpinning || rollMapMut.isPending}
-                >
-                  <Dices className="w-5 h-5 mr-2" />
-                  {isSpinning ? "Dreht..." : "Karte drehen"}
-                </Button>
+              {!bracket?.rolledMap ? (
+                manualSelection ? (
+                  <Button
+                    className="w-full font-mono text-base h-12 uppercase tracking-widest bg-secondary hover:bg-secondary/95 text-white"
+                    onClick={() => handleManualConfirmMap(selectedManualMap)}
+                    disabled={!selectedManualMap}
+                  >
+                    <Check className="w-5 h-5 mr-2" />
+                    Karte bestätigen
+                  </Button>
+                ) : (
+                  <Button
+                    className="w-full font-mono text-base h-12 uppercase tracking-widest"
+                    onClick={handleRollMap}
+                    disabled={isSpinning || rollMapMut.isPending}
+                  >
+                    <Dices className="w-5 h-5 mr-2" />
+                    {isSpinning ? "Dreht..." : "Karte drehen"}
+                  </Button>
+                )
               ) : (
                 <Button
                   className="w-full font-mono text-base h-12 uppercase tracking-widest bg-destructive hover:bg-destructive/90 text-white"
