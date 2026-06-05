@@ -270,13 +270,14 @@ export async function runMatchzyStartSequence(rolledMapName?: string): Promise<{
       console.log(`[MatchZy Pipeline] Upload beendet.`);
     } catch (err: any) {
       console.error(`[MatchZy Pipeline] Upload fehlgeschlagen:`, err);
-      throw new Error(`FTP Upload fehlgeschlagen: ${err.message}`);
+      // Don't throw — we can still load via URL
+      console.log(`[MatchZy Pipeline] FTP fehlgeschlagen, lade stattdessen per URL...`);
     }
 
-    // Step 1: End any existing match so loadmatch won't be rejected
-    console.log(`[MatchZy Pipeline] RCON → matchzy_endmatch (beende laufendes Match)`);
+    // Step 1: End any existing match (FSH-MatchZy uses css_endmatch)
+    console.log(`[MatchZy Pipeline] RCON → css_endmatch (beende laufendes Match)`);
     try {
-      await Rcon.send(finalHost, port, password, "matchzy_endmatch");
+      await Rcon.send(finalHost, port, password, "css_endmatch");
       console.log(`[MatchZy Pipeline] EndMatch gesendet.`);
     } catch (e: any) {
       console.log(`[MatchZy Pipeline] EndMatch: ${e.message} (nicht kritisch)`);
@@ -295,21 +296,15 @@ export async function runMatchzyStartSequence(rolledMapName?: string): Promise<{
     }
 
     // Wait for server map reboot
-    console.log(`[MatchZy Pipeline] Warte 8 Sekunden auf Server-Neustart...`);
-    await new Promise((resolve) => setTimeout(resolve, 8000));
+    console.log(`[MatchZy Pipeline] Warte 10 Sekunden auf Server-Neustart...`);
+    await new Promise((resolve) => setTimeout(resolve, 10000));
 
-    // Step 3: Load match config
-    const loadCmd = `matchzy_loadmatch "${relativeMatchPath}"`;
+    // Step 3: Load match via URL (FSH-MatchZy can't find local files, but matchzy_loadmatch_url works)
+    const appUrl = settings.appUrl || `http://localhost:${process.env.PORT || 3000}`;
+    const configUrl = `${appUrl}/api/matchzy/active-match.json`;
+    const loadCmd = `matchzy_loadmatch_url "${configUrl}"`;
     console.log(`[MatchZy Pipeline] RCON → ${loadCmd}`);
     const output = await sendRconWithRetry(finalHost, port, password, loadCmd);
-
-    // Step 4: Restart to apply team assignments
-    console.log(`[MatchZy Pipeline] RCON → matchzy_restart`);
-    try {
-      await sendRconWithRetry(finalHost, port, password, "matchzy_restart", 3, 2000);
-    } catch (e: any) {
-      console.warn(`[MatchZy Pipeline] Restart nicht kritisch: ${e.message}`);
-    }
 
     return { success: true, command: loadCmd, output };
   } else {
@@ -317,20 +312,29 @@ export async function runMatchzyStartSequence(rolledMapName?: string): Promise<{
     const appUrl = settings.appUrl || `http://localhost:${process.env.PORT || 3000}`;
     const configUrl = `${appUrl}/api/matchzy/active-match.json`;
 
-    // Mapchange level first
-    console.log(`[MatchZy Pipeline] RCON verbunden -> Mapchange-Befehl senden`);
+    // End existing match first
+    console.log(`[MatchZy Pipeline] RCON → css_endmatch`);
+    try {
+      await Rcon.send(finalHost, port, password, "css_endmatch");
+    } catch (e: any) {
+      console.log(`[MatchZy Pipeline] EndMatch: ${e.message} (nicht kritisch)`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // Mapchange
+    console.log(`[MatchZy Pipeline] RCON → changelevel "${targetMap}"`);
     const changeCmd = `changelevel "${targetMap}"`;
     try {
       await Rcon.send(finalHost, port, password, changeCmd);
     } catch (e: any) {
-      console.log(`[MatchZy Pipeline] RCON Mapchange gesendet (Socket-Abbruch erwartet): ${e.message}`);
+      console.log(`[MatchZy Pipeline] Mapchange gesendet: ${e.message}`);
     }
 
-    console.log(`[MatchZy Pipeline] Warte 6 Sekunden auf Server-Neustart...`);
-    await new Promise((resolve) => setTimeout(resolve, 6000));
+    console.log(`[MatchZy Pipeline] Warte 10 Sekunden auf Server-Neustart...`);
+    await new Promise((resolve) => setTimeout(resolve, 10000));
 
     const loadCmd = `matchzy_loadmatch_url "${configUrl}"`;
-    console.log(`[MatchZy Pipeline] Sende Befehl -> ${loadCmd}`);
+    console.log(`[MatchZy Pipeline] RCON → ${loadCmd}`);
     const output = await sendRconWithRetry(finalHost, port, password, loadCmd);
 
     return { success: true, command: loadCmd, output };
