@@ -206,4 +206,35 @@ router.post("/players/register", (req, res) => {
   res.status(201).json(player);
 });
 
+router.post("/players/verify-streamer", (req, res) => {
+  const { steamId, name } = req.body as { steamId?: string; name?: string };
+  if (!steamId || !/^\d{17}$/.test(steamId.trim())) {
+    res.status(400).json({ error: "Gültige 17-stellige SteamID64 erforderlich." });
+    return;
+  }
+  const cleanSteamId = steamId.trim();
+
+  // Reset streamer flag for all players
+  for (const p of store.getAllPlayers()) {
+    if (p.isStreamer) {
+      p.isStreamer = false;
+    }
+  }
+
+  let player: any = store.getAllPlayers().find((p) => p.steamId === cleanSteamId);
+  if (player) {
+    player.isStreamer = true;
+  } else {
+    player = store.addPlayer(name?.trim() || "Streamer", "accepted", cleanSteamId);
+    if (player) {
+      player.isStreamer = true;
+    } else {
+      res.status(400).json({ error: "Maximale Spielerzahl erreicht. Bitte entferne einen Spieler aus dem Pool." });
+      return;
+    }
+  }
+  broadcastStateUpdate();
+  res.json({ success: true, player });
+});
+
 export default router;

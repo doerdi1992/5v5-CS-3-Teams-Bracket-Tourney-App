@@ -32,6 +32,7 @@ export interface Player {
   team: TeamName | null;
   socketId: string | null;
   steamId?: string;
+  isStreamer?: boolean;
 }
 
 export interface Teams {

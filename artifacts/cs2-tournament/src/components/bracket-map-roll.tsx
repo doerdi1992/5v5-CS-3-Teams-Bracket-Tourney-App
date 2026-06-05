@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { RefreshCw, Send, Trophy, Eye, EyeOff, Dices, Zap, Save, Crown } from "lucide-react";
+import { RefreshCw, Send, Trophy, Eye, EyeOff, Dices, Zap, Save, Crown, Server, Play, Copy, Loader2 } from "lucide-react";
 
 // ─── Animation constants ─────────────────────────────────────────────────────
 const WINNER_IDX = 68;        // winner tile index in the strip
@@ -75,6 +75,7 @@ interface ExtendedBracket {
   tiebreakerWinner?: string | null;
   tiebreakerRounds?: Record<string, number> | null;
   activeServerDetails?: string | null;
+  serverStatus?: "idle" | "restarting" | "rebooting" | "loading_config" | "ready" | "failed";
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -85,6 +86,30 @@ export default function BracketMapRoll() {
   const bracket = fullState?.bracket as ExtendedBracket | undefined;
   const mapImages = fullState?.mapImages || {};
   const teams = fullState?.teams || { A: [], B: [], C: [] };
+  const players = (fullState as any)?.players || [];
+  const adminRole = sessionStorage.getItem("cs2_admin_role");
+  const streamerSteamId = localStorage.getItem("cs2_streamer_steam_id");
+
+  const getSteamUrl = (connStr: string | null | undefined): string => {
+    if (!connStr) return "";
+    let clean = connStr.trim();
+    if (clean.toLowerCase().startsWith("connect ")) clean = clean.substring(8).trim();
+    const parts = clean.split(";");
+    const ipPort = parts[0].trim();
+    let password = "";
+    if (parts.length > 1) {
+      const pwPart = parts[1].trim();
+      if (pwPart.toLowerCase().startsWith("password ")) password = pwPart.substring(9).trim();
+    }
+    return password ? `steam://connect/${ipPort}/${password}` : `steam://connect/${ipPort}`;
+  };
+
+  const copyConnectionString = (connStr: string | null | undefined) => {
+    if (connStr) {
+      void navigator.clipboard.writeText(connStr);
+      toast({ title: "Kopiert!", description: "In die Zwischenablage kopiert." });
+    }
+  };
 
   // ── localStorage-backed state ──────────────────────────────────────────────
   const [mapPool, setMapPool] = useState(() =>
@@ -629,6 +654,80 @@ export default function BracketMapRoll() {
 
       {/* ── Right: Map Roll + Server ── */}
       <div className="space-y-6">
+        {/* Server Setup Status */}
+        {bracket?.serverStatus && bracket.serverStatus !== "idle" && bracket.serverStatus !== "ready" && (
+          <Card className={`border-dashed animate-in fade-in slide-in-from-top-3 duration-300 ${
+            bracket.serverStatus === "failed" 
+              ? "bg-red-500/[0.04] border-red-500/30 text-red-400" 
+              : "bg-cyan-500/[0.04] border-cyan-500/30 text-cyan-400"
+          }`}>
+            <CardContent className="p-5 flex items-center gap-4">
+              {bracket.serverStatus === "failed" ? (
+                <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
+                  <span className="text-red-500 font-bold">!</span>
+                </div>
+              ) : (
+                <Loader2 className="w-8 h-8 animate-spin flex-shrink-0" />
+              )}
+              <div className="flex-1 space-y-1 font-mono">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60">Server-Status</p>
+                <h3 className="text-sm font-bold uppercase tracking-wide">
+                  {bracket.serverStatus === "restarting" && "🔄 Server wird zurückgesetzt..."}
+                  {bracket.serverStatus === "rebooting" && "🎮 Karte wird gewechselt..."}
+                  {bracket.serverStatus === "loading_config" && "📋 Teams werden geladen..."}
+                  {bracket.serverStatus === "failed" && "❌ Konfiguration fehlgeschlagen!"}
+                </h3>
+                <p className="text-[10px] text-muted-foreground/50">
+                  {bracket.serverStatus === "restarting" && "Beende laufendes Match und starte Server neu..."}
+                  {bracket.serverStatus === "rebooting" && "Warte auf Neustart und Kartenladezeit (~10s)..."}
+                  {bracket.serverStatus === "loading_config" && "MatchZy Konfigurationsdatei wird übertragen..."}
+                  {bracket.serverStatus === "failed" && "RCON-Pipeline fehlgeschlagen. Du kannst dennoch manuell beitreten."}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Server Connection ("Server beitreten") for Admin / Streamer if playing */}
+        {(() => {
+          const isMyMatchActive = (() => {
+            if (adminRole === "admin") return true; // Admins can always join
+            if (adminRole === "streamer" && streamerSteamId) {
+              const streamerPlayer = players.find((p: any) => p.steamId === streamerSteamId);
+              if (streamerPlayer?.team && currentTeams.includes(streamerPlayer.team)) {
+                return true;
+              }
+            }
+            return false;
+          })();
+
+          if (isMyMatchActive && bracket?.activeServerDetails) {
+            return (
+              <Card className="bg-emerald-500/[0.04] border-emerald-500/20 animate-in fade-in slide-in-from-top-2 duration-300">
+                <CardContent className="p-5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Server className="w-5 h-5 text-emerald-500 animate-pulse" />
+                    <span className="font-mono text-sm uppercase tracking-wider text-emerald-500 font-bold">Match bereit</span>
+                  </div>
+                  <div className="p-3 bg-black/40 rounded border border-white/[0.06] flex items-center justify-between">
+                    <code className="text-cyan-400 font-mono text-sm break-all">{bracket.activeServerDetails}</code>
+                    <Button variant="ghost" size="icon" onClick={() => copyConnectionString(bracket.activeServerDetails)} className="ml-2 h-9 w-9 text-muted-foreground hover:text-white">
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <a href={getSteamUrl(bracket.activeServerDetails)} className="block">
+                    <Button className="w-full font-mono uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white gap-2.5 h-14 text-sm">
+                      <Play className="w-4.5 h-4.5 fill-current" />
+                      Server Beitreten
+                    </Button>
+                  </a>
+                </CardContent>
+              </Card>
+            );
+          }
+          return null;
+        })()}
+
         <Card className="border-border/50 border-t-secondary border-t-2">
           <CardHeader>
             <div className="flex items-center justify-between">
