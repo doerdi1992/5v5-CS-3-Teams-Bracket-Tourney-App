@@ -119,33 +119,48 @@ export function generateMatchConfig() {
     console.log(`[MatchZy] BO3 Tiebreaker — Maps: ${maplist.join(", ")}`);
   }
 
+  const settings = store.getServerSettings(false);
+  const spectatorsPlayersMap: Record<string, string> = {};
+  if (settings.adminSteamId && settings.adminSteamId.trim().length === 17 && settings.adminSteamId.startsWith("7656")) {
+    spectatorsPlayersMap[settings.adminSteamId.trim()] = "Admin / Organizer";
+  }
+
+  const matchConfig: any = {
+    matchid: matchId,
+    num_maps: numMaps,
+    maplist: maplist,
+    skip_veto: skipVeto,
+    players_per_team: 5,
+    min_players_to_ready: 5,
+    min_spectators_to_ready: 0,
+    series_can_clinch: true,
+    map_sides: mapSides,
+    team1: {
+      name: `TEAM ${t1Letter}`,
+      players: team1PlayersMap
+    },
+    team2: {
+      name: `TEAM ${t2Letter}`,
+      players: team2PlayersMap
+    },
+    cvars: {
+      mp_overtime_enable: "1",
+      mp_overtime_maxrounds: "6",
+      mp_maxrounds: "24"
+    }
+  };
+
+  if (Object.keys(spectatorsPlayersMap).length > 0) {
+    matchConfig.spectators = {
+      name: "Spectators",
+      players: spectatorsPlayersMap
+    };
+  }
+
   return {
     matchId,
     resolvedMap,
-    config: {
-      matchid: matchId,
-      num_maps: numMaps,
-      maplist: maplist,
-      skip_veto: skipVeto,
-      players_per_team: 5,
-      min_players_to_ready: 2,
-      min_spectators_to_ready: 0,
-      series_can_clinch: true,
-      map_sides: mapSides,
-      team1: {
-        name: `TEAM ${t1Letter}`,
-        players: team1PlayersMap
-      },
-      team2: {
-        name: `TEAM ${t2Letter}`,
-        players: team2PlayersMap
-      },
-      cvars: {
-        mp_overtime_enable: "1",
-        mp_overtime_maxrounds: "6",
-        mp_maxrounds: "24"
-      }
-    }
+    config: matchConfig
   };
 }
 

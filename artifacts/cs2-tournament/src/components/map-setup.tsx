@@ -62,6 +62,7 @@ export default function MapSetup() {
   // Admin password editing state variables
   const [adminPassword, setAdminPassword] = useState("");
   const [showAdminPw, setShowAdminPw] = useState(false);
+  const [adminSteamId, setAdminSteamId] = useState("");
 
   useEffect(() => {
     const currentAdminPassword = sessionStorage.getItem("cs2_admin_password") ?? "";
@@ -88,6 +89,7 @@ export default function MapSetup() {
         setFtpDir(config.ftpDir ?? "game/csgo/MatchZy/");
         setAutoStartMatch(config.autoStartMatch ?? true);
         setAdminPassword(config.adminPassword ?? "");
+        setAdminSteamId(config.adminSteamId ?? "");
       })
       .catch((err) => console.error("Error loading server settings:", err));
   }, []);
@@ -115,7 +117,8 @@ export default function MapSetup() {
           ftpUser,
           ftpPassword,
           ftpDir,
-          adminPassword
+          adminPassword,
+          adminSteamId
         })
       });
 
@@ -154,7 +157,8 @@ export default function MapSetup() {
           ftpUser,
           ftpPassword,
           ftpDir,
-          adminPassword
+          adminPassword,
+          adminSteamId
         })
       });
 
@@ -414,6 +418,16 @@ export default function MapSetup() {
                 {showAdminPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Admin SteamID64 (für Spectator-Whitelist / Beitritt)</label>
+            <Input
+              placeholder="z.B. 76561198000000000"
+              value={adminSteamId}
+              onChange={(e) => setAdminSteamId(e.target.value)}
+              className="font-mono text-xs bg-black/50 border-green-500/30"
+            />
           </div>
 
           {/* Lademethode Selector */}

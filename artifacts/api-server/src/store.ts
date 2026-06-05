@@ -21,6 +21,7 @@ export interface ServerSettings {
   appUrl?: string;
   adminPassword?: string;
   apiKey?: string;
+  adminSteamId?: string;
 }
 
 export interface Player {
@@ -121,6 +122,7 @@ class Store {
       appUrl: "https://esports-bracket-flow--buffinger1.replit.app",
       adminPassword: "ztjhfts3425ghgd",
       apiKey: process.env["API_KEY"] || "sk_live_janaxF",
+      adminSteamId: "",
     };
   }
 
