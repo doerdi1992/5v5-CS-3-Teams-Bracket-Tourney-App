@@ -300,7 +300,7 @@ export async function runMatchzyStartSequence(rolledMapName?: string): Promise<{
     await new Promise((resolve) => setTimeout(resolve, 10000));
 
     // Step 3: Load match via URL (FSH-MatchZy can't find local files, but matchzy_loadmatch_url works)
-    const appUrl = settings.appUrl || `http://localhost:${process.env.PORT || 3000}`;
+    const appUrl = settings.appUrl || process.env.REPLIT_URL || `https://esports-bracket-flow--buffinger1.replit.app`;
     const configUrl = `${appUrl}/api/matchzy/active-match.json`;
     const loadCmd = `matchzy_loadmatch_url "${configUrl}"`;
     console.log(`[MatchZy Pipeline] RCON → ${loadCmd}`);
@@ -309,7 +309,7 @@ export async function runMatchzyStartSequence(rolledMapName?: string): Promise<{
     return { success: true, command: loadCmd, output };
   } else {
     // URL load method
-    const appUrl = settings.appUrl || `http://localhost:${process.env.PORT || 3000}`;
+    const appUrl = settings.appUrl || process.env.REPLIT_URL || `https://esports-bracket-flow--buffinger1.replit.app`;
     const configUrl = `${appUrl}/api/matchzy/active-match.json`;
 
     // End existing match first
