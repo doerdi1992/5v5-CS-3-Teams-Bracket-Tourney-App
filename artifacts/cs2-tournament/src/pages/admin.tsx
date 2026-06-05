@@ -155,12 +155,15 @@ function StreamerSteamLink({ activeServerDetails, isStreamerPlaying, getSteamUrl
 }
 
 export default function AdminPage() {
+  const { toast } = useToast();
   const [authed, setAuthed] = useState(false);
   const [role, setRole] = useState<"admin" | "streamer">("streamer");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [steamInput, setSteamInput] = useState("");
+  const [showSteamScreen, setShowSteamScreen] = useState(false);
 
   const { data: fullState } = useGetFullState({ query: { queryKey: getGetFullStateQueryKey(), enabled: authed } });
   const bracket = fullState?.bracket as any;
@@ -196,8 +199,18 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (sessionStorage.getItem(AUTH_KEY) === "1") {
-      setAuthed(true);
-      setRole((sessionStorage.getItem("cs2_admin_role") as "admin" | "streamer") || "streamer");
+      const storedRole = (sessionStorage.getItem("cs2_admin_role") as "admin" | "streamer") || "streamer";
+      setRole(storedRole);
+      if (storedRole === "streamer") {
+        const storedSteamId = localStorage.getItem("cs2_streamer_steam_id");
+        if (storedSteamId) {
+          setAuthed(true);
+        } else {
+          setShowSteamScreen(true);
+        }
+      } else {
+        setAuthed(true);
+      }
     }
   }, []);
 
@@ -217,7 +230,16 @@ export default function AdminPage() {
         sessionStorage.setItem("cs2_admin_password", password);
         sessionStorage.setItem("cs2_admin_role", data.role);
         setRole(data.role);
-        setAuthed(true);
+        if (data.role === "streamer") {
+          const storedSteamId = localStorage.getItem("cs2_streamer_steam_id");
+          if (storedSteamId) {
+            setAuthed(true);
+          } else {
+            setShowSteamScreen(true);
+          }
+        } else {
+          setAuthed(true);
+        }
       } else {
         const data = await res.json() as { message?: string };
         setError(data.message ?? "Falsches Passwort");
@@ -229,8 +251,80 @@ export default function AdminPage() {
     }
   };
 
+  const handleSteamSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const query = steamInput.trim();
+    if (!query) return;
+
+    setLoading(true);
+    let resolvedId = "";
+    let resolvedName = "Streamer";
+
+    try {
+      const res = await fetch(`/api/players/resolve-steam?input=${encodeURIComponent(query)}`);
+      if (res.ok) {
+        const data = await res.json() as { steamId?: string; steamName?: string };
+        if (data.steamId) {
+          resolvedId = data.steamId;
+          resolvedName = data.steamName || "Streamer";
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to resolve steam id", err);
+    }
+
+    if (!resolvedId) {
+      if (/^\d{17}$/.test(query)) {
+        resolvedId = query;
+        resolvedName = "Streamer";
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Fehler",
+          description: "Steam-Profil-Link oder 17-stellige SteamID64 ungültig."
+        });
+        setLoading(false);
+        return;
+      }
+    }
+
+    try {
+      const res = await fetch("/api/players/verify-streamer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ steamId: resolvedId, name: resolvedName })
+      });
+      if (res.ok) {
+        localStorage.setItem("cs2_streamer_steam_id", resolvedId);
+        localStorage.setItem("cs2_streamer_name", resolvedName);
+        setSteamInput("");
+        setAuthed(true);
+        setShowSteamScreen(false);
+        toast({
+          title: "Erfolgreich verknüpft!",
+          description: `Du bist jetzt als spielender Streamer (${resolvedName}) registriert.`
+        });
+      } else {
+        const err = await res.json() as { error?: string };
+        toast({
+          variant: "destructive",
+          title: "Fehler",
+          description: err.error || "Flaggen als Streamer fehlgeschlagen."
+        });
+      }
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Verbindungsfehler",
+        description: "Die Verbindung zum Server ist fehlgeschlagen."
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ─── LOGIN SCREEN ──────────────────────────────────────────
-  if (!authed) {
+  if (!authed && !showSteamScreen) {
     return (
       <div className="min-h-screen bg-[#0a0e1a] text-foreground flex items-center justify-center p-6 relative overflow-hidden">
         {/* Background ambient */}
@@ -282,6 +376,54 @@ export default function AdminPage() {
             </form>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  // ─── STEAM ID SCREEN (For Streamer) ──────────────────────
+  if (showSteamScreen && !authed) {
+    return (
+      <div className="min-h-screen bg-[#0a0e1a] text-foreground flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Ambient background */}
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-primary/6 rounded-full blur-[150px] pointer-events-none" />
+
+        <div className="w-full max-w-sm space-y-6 relative z-10 text-center">
+          {/* Logo / Title */}
+          <div className="space-y-2">
+            <h1 className="text-4xl font-black tracking-[0.15em] font-mono uppercase text-white/90">
+              Janaxf <span className="text-primary">5v5</span>
+            </h1>
+            <p className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground/50">
+              Streamer-Konto Verknüpfen
+            </p>
+          </div>
+
+          {/* Simple registration form */}
+          <form onSubmit={handleSteamSubmit} className="space-y-3">
+            <Input
+              value={steamInput}
+              onChange={(e) => setSteamInput(e.target.value)}
+              placeholder="Steam-Profil-Link oder SteamID64..."
+              className="font-mono text-base bg-white/[0.04] border-white/[0.08] h-14 text-center placeholder:text-muted-foreground/30 focus-visible:ring-primary/40 focus-visible:border-primary/30"
+              autoFocus
+            />
+            <Button
+              type="submit"
+              className="w-full font-mono uppercase tracking-[0.15em] h-14 bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-500 text-white shadow-[0_4px_20px_rgba(249,115,22,0.25)] text-base"
+              disabled={!steamInput.trim() || loading}
+            >
+              {loading ? (
+                <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Verbinde...</>
+              ) : (
+                "Anmelden"
+              )}
+            </Button>
+          </form>
+
+          <p className="text-xs font-mono text-muted-foreground/30 leading-relaxed">
+            z.B. https://steamcommunity.com/id/deinname oder 76561198000000000
+          </p>
+        </div>
       </div>
     );
   }
@@ -350,21 +492,19 @@ export default function AdminPage() {
                 variant="ghost"
                 size="sm"
                 className="font-mono text-[10px] uppercase tracking-wider gap-1.5 h-8 text-muted-foreground/40 hover:text-red-400 hover:bg-red-500/5"
-                onClick={() => { sessionStorage.removeItem(AUTH_KEY); setAuthed(false); }}
+                onClick={() => {
+                  sessionStorage.removeItem(AUTH_KEY);
+                  localStorage.removeItem("cs2_streamer_steam_id");
+                  localStorage.removeItem("cs2_streamer_name");
+                  setAuthed(false);
+                  setShowSteamScreen(false);
+                }}
               >
                 <LogOut className="w-3.5 h-3.5" />
               </Button>
             </div>
           </div>
         </header>
-
-        {role === "streamer" && (
-          <StreamerSteamLink
-            activeServerDetails={activeServerDetails}
-            isStreamerPlaying={isStreamerPlaying}
-            getSteamUrl={getSteamUrl}
-          />
-        )}
 
         {/* ── Tabs ───────────────────────────────────────────── */}
         <Tabs defaultValue="bracket" className="w-full">
