@@ -173,7 +173,18 @@ class Store {
     };
   }
 
-  addPlayer(name: string, status: PlayerStatus = "accepted", steamId?: string): Player {
+  // 3 teams × 5 players = 15 max
+  static readonly MAX_ACCEPTED_PLAYERS = 15;
+
+  getAcceptedCount(): number {
+    return Array.from(this.playerPool.values()).filter(p => p.status === "accepted").length;
+  }
+
+  addPlayer(name: string, status: PlayerStatus = "accepted", steamId?: string): Player | null {
+    // Enforce limit when adding as accepted
+    if (status === "accepted" && this.getAcceptedCount() >= TournamentStore.MAX_ACCEPTED_PLAYERS) {
+      return null;
+    }
     const id = randomUUID();
     const player: Player = { id, name, flagged: false, status, team: null, socketId: null, steamId };
     this.playerPool.set(id, player);
@@ -196,9 +207,15 @@ class Store {
     return this.playerPool.get(id);
   }
 
-  updatePlayer(id: string, updates: Partial<Player>): Player | undefined {
+  updatePlayer(id: string, updates: Partial<Player>): Player | undefined | "limit" {
     const player = this.playerPool.get(id);
     if (!player) return undefined;
+    // Enforce limit when changing status to accepted
+    if (updates.status === "accepted" && player.status !== "accepted") {
+      if (this.getAcceptedCount() >= TournamentStore.MAX_ACCEPTED_PLAYERS) {
+        return "limit";
+      }
+    }
     Object.assign(player, updates);
     return player;
   }
