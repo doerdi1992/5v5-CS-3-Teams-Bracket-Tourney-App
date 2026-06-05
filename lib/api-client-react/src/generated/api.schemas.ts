@@ -87,6 +87,18 @@ export interface Teams {
   C: Player[];
 }
 
+export type BracketStateServerStatus = typeof BracketStateServerStatus[keyof typeof BracketStateServerStatus];
+
+
+export const BracketStateServerStatus = {
+  idle: 'idle',
+  restarting: 'restarting',
+  rebooting: 'rebooting',
+  loading_config: 'loading_config',
+  ready: 'ready',
+  failed: 'failed',
+} as const;
+
 export interface BracketState {
   currentMatch: number;
   /** @nullable */
@@ -103,6 +115,7 @@ export interface BracketState {
   match3Winner: string | null;
   /** @nullable */
   rolledMap: string | null;
+  serverStatus?: BracketStateServerStatus;
 }
 
 export type MatchWinnerInputWinner = typeof MatchWinnerInputWinner[keyof typeof MatchWinnerInputWinner];

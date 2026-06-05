@@ -5,6 +5,7 @@ import { FtpClient } from "../lib/ftp.js";
 import fs from "fs";
 import path from "path";
 import { checkAdminAuth, checkStreamerAuth } from "../middlewares/auth.js";
+import { broadcastStateUpdate, broadcastServerToTeams } from "../socket.js";
 
 const router: IRouter = Router();
 
@@ -249,6 +250,8 @@ export async function runMatchzyStartSequence(rolledMapName?: string): Promise<{
   const password = settings.rconPassword || "";
 
   if (!host || !port || !password) {
+    store.bracketState.serverStatus = "failed";
+    broadcastStateUpdate();
     throw new Error("RCON-Zugangsdaten (Server IP, Port und RCON-Passwort) sind nicht konfiguriert.");
   }
 
@@ -257,128 +260,152 @@ export async function runMatchzyStartSequence(rolledMapName?: string): Promise<{
     finalHost = finalHost.split(":")[0];
   }
 
-  const { matchId, resolvedMap, config } = generateMatchConfig();
-  
-  // Decide target map (explicit parameter or default map from match configuration)
-  const targetMap = rolledMapName ? resolveMapPath(rolledMapName) : resolvedMap;
-  
-  // Only override maplist for BO1 — for BO3 tiebreaker, keep the 3-map pool
-  if (config.num_maps === 1) {
-    config.maplist = [targetMap];
-  }
+  try {
+    store.bracketState.serverStatus = "restarting";
+    broadcastStateUpdate();
 
-
-  const content = JSON.stringify(config, null, 2);
-  console.log(`[MatchZy Pipeline] JSON erstellt -> MatchID ${matchId}, Map: ${targetMap}`);
-
-  const method = settings.loadMethod || "url";
-
-  if (method === "ftp") {
-    if (!settings.ftpUser || !settings.ftpPassword) {
-      throw new Error("FTP-Benutzername und -Passwort sind im FTP-Modus erforderlich.");
-    }
-    const ftpHost = settings.ftpHost || finalHost;
-    const ftpPort = settings.ftpPort || 21;
-    const remoteDir = settings.ftpDir || "p3611/cfg/MatchZy/";
-    const fileName = `match_${matchId}.json`;
-    const remotePath = remoteDir.endsWith("/") ? `${remoteDir}${fileName}` : `${remoteDir}/${fileName}`;
-
-    // For matchzy_loadmatch, path is relative to csgo root (p3611/)
-    // Extract the path after p3611/ for the RCON command
-    let relativeMatchPath = fileName;
-    const p3611Idx = remoteDir.indexOf("p3611/");
-    if (p3611Idx !== -1) {
-      const subPath = remoteDir.substring(p3611Idx + 6); // everything after "p3611/"
-      relativeMatchPath = subPath.endsWith("/") ? `${subPath}${fileName}` : `${subPath}/${fileName}`;
+    const { matchId, resolvedMap, config } = generateMatchConfig();
+    
+    // Decide target map (explicit parameter or default map from match configuration)
+    const targetMap = rolledMapName ? resolveMapPath(rolledMapName) : resolvedMap;
+    
+    // Only override maplist for BO1 — for BO3 tiebreaker, keep the 3-map pool
+    if (config.num_maps === 1) {
+      config.maplist = [targetMap];
     }
 
-    console.log(`[MatchZy Pipeline] Upload gestartet -> match_${matchId}.json zu ${ftpHost}:${ftpPort}`);
-    try {
-      await FtpClient.upload({
-        host: ftpHost,
-        port: ftpPort,
-        user: settings.ftpUser,
-        pass: settings.ftpPassword
-      }, remotePath, content);
-      console.log(`[MatchZy Pipeline] Upload beendet.`);
-    } catch (err: any) {
-      console.error(`[MatchZy Pipeline] Upload fehlgeschlagen:`, err);
-      // Don't throw — we can still load via URL
-      console.log(`[MatchZy Pipeline] FTP fehlgeschlagen, lade stattdessen per URL...`);
+    const content = JSON.stringify(config, null, 2);
+    console.log(`[MatchZy Pipeline] JSON erstellt -> MatchID ${matchId}, Map: ${targetMap}`);
+
+    const method = settings.loadMethod || "url";
+
+    if (method === "ftp") {
+      if (!settings.ftpUser || !settings.ftpPassword) {
+        throw new Error("FTP-Benutzername und -Passwort sind im FTP-Modus erforderlich.");
+      }
+      const ftpHost = settings.ftpHost || finalHost;
+      const ftpPort = settings.ftpPort || 21;
+      const remoteDir = settings.ftpDir || "p3611/cfg/MatchZy/";
+      const fileName = `match_${matchId}.json`;
+      const remotePath = remoteDir.endsWith("/") ? `${remoteDir}${fileName}` : `${remoteDir}/${fileName}`;
+
+      // For matchzy_loadmatch, path is relative to csgo root (p3611/)
+      // Extract the path after p3611/ for the RCON command
+      let relativeMatchPath = fileName;
+      const p3611Idx = remoteDir.indexOf("p3611/");
+      if (p3611Idx !== -1) {
+        const subPath = remoteDir.substring(p3611Idx + 6); // everything after "p3611/"
+        relativeMatchPath = subPath.endsWith("/") ? `${subPath}${fileName}` : `${subPath}/${fileName}`;
+      }
+
+      console.log(`[MatchZy Pipeline] Upload gestartet -> match_${matchId}.json zu ${ftpHost}:${ftpPort}`);
+      try {
+        await FtpClient.upload({
+          host: ftpHost,
+          port: ftpPort,
+          user: settings.ftpUser,
+          pass: settings.ftpPassword
+        }, remotePath, content);
+        console.log(`[MatchZy Pipeline] Upload beendet.`);
+      } catch (err: any) {
+        console.error(`[MatchZy Pipeline] Upload failed, falling back to URL load:`, err);
+      }
+
+      // Step 1: End any existing match (FSH-MatchZy uses css_endmatch)
+      console.log(`[MatchZy Pipeline] RCON → css_endmatch (beende laufendes Match)`);
+      try {
+        await Rcon.send(finalHost, port, password, "css_endmatch");
+        console.log(`[MatchZy Pipeline] EndMatch gesendet.`);
+      } catch (e: any) {
+        console.log(`[MatchZy Pipeline] EndMatch: ${e.message} (nicht kritisch)`);
+      }
+
+      // Brief pause for matchzy to reset state
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Step 2: Change map
+      let changeCmd = `changelevel "${targetMap}"`;
+      const workshopMatch = targetMap.match(/workshop\/(\d+)/i);
+      if (workshopMatch && workshopMatch[1]) {
+        changeCmd = `host_workshop_map ${workshopMatch[1]}`;
+      }
+      console.log(`[MatchZy Pipeline] RCON → ${changeCmd}`);
+      try {
+        await Rcon.send(finalHost, port, password, changeCmd);
+      } catch (e: any) {
+        console.log(`[MatchZy Pipeline] Mapchange gesendet (Socket-Abbruch erwartet): ${e.message}`);
+      }
+
+      store.bracketState.serverStatus = "rebooting";
+      broadcastStateUpdate();
+
+      // Wait for server map reboot
+      console.log(`[MatchZy Pipeline] Warte 10 Sekunden auf Server-Neustart...`);
+      await new Promise((resolve) => setTimeout(resolve, 10000));
+
+      store.bracketState.serverStatus = "loading_config";
+      broadcastStateUpdate();
+
+      // Step 3: Load match via URL (FSH-MatchZy can't find local files, but matchzy_loadmatch_url works)
+      const appUrl = settings.appUrl || process.env.REPLIT_URL || `https://esports-bracket-flow--buffinger1.replit.app`;
+      const configUrl = `${appUrl}/api/matchzy/active-match.json`;
+      const loadCmd = `matchzy_loadmatch_url "${configUrl}"`;
+      console.log(`[MatchZy Pipeline] RCON → ${loadCmd}`);
+      const output = await sendRconWithRetry(finalHost, port, password, loadCmd);
+
+      store.bracketState.serverStatus = "ready";
+      broadcastStateUpdate();
+
+      return { success: true, command: loadCmd, output };
+    } else {
+      // URL load method
+      const appUrl = settings.appUrl || process.env.REPLIT_URL || `https://esports-bracket-flow--buffinger1.replit.app`;
+      const configUrl = `${appUrl}/api/matchzy/active-match.json`;
+
+      // End existing match first
+      console.log(`[MatchZy Pipeline] RCON → css_endmatch`);
+      try {
+        await Rcon.send(finalHost, port, password, "css_endmatch");
+      } catch (e: any) {
+        console.log(`[MatchZy Pipeline] EndMatch: ${e.message} (nicht kritisch)`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Mapchange
+      let changeCmd = `changelevel "${targetMap}"`;
+      const workshopMatch = targetMap.match(/workshop\/(\d+)/i);
+      if (workshopMatch && workshopMatch[1]) {
+        changeCmd = `host_workshop_map ${workshopMatch[1]}`;
+      }
+      console.log(`[MatchZy Pipeline] RCON → ${changeCmd}`);
+      try {
+        await Rcon.send(finalHost, port, password, changeCmd);
+      } catch (e: any) {
+        console.log(`[MatchZy Pipeline] Mapchange gesendet: ${e.message}`);
+      }
+
+      store.bracketState.serverStatus = "rebooting";
+      broadcastStateUpdate();
+
+      console.log(`[MatchZy Pipeline] Warte 10 Sekunden auf Server-Neustart...`);
+      await new Promise((resolve) => setTimeout(resolve, 10000));
+
+      store.bracketState.serverStatus = "loading_config";
+      broadcastStateUpdate();
+
+      const loadCmd = `matchzy_loadmatch_url "${configUrl}"`;
+      console.log(`[MatchZy Pipeline] RCON → ${loadCmd}`);
+      const output = await sendRconWithRetry(finalHost, port, password, loadCmd);
+
+      store.bracketState.serverStatus = "ready";
+      broadcastStateUpdate();
+
+      return { success: true, command: loadCmd, output };
     }
-
-    // Step 1: End any existing match (FSH-MatchZy uses css_endmatch)
-    console.log(`[MatchZy Pipeline] RCON → css_endmatch (beende laufendes Match)`);
-    try {
-      await Rcon.send(finalHost, port, password, "css_endmatch");
-      console.log(`[MatchZy Pipeline] EndMatch gesendet.`);
-    } catch (e: any) {
-      console.log(`[MatchZy Pipeline] EndMatch: ${e.message} (nicht kritisch)`);
-    }
-
-    // Brief pause for matchzy to reset state
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    // Step 2: Change map
-    let changeCmd = `changelevel "${targetMap}"`;
-    const workshopMatch = targetMap.match(/workshop\/(\d+)/i);
-    if (workshopMatch && workshopMatch[1]) {
-      changeCmd = `host_workshop_map ${workshopMatch[1]}`;
-    }
-    console.log(`[MatchZy Pipeline] RCON → ${changeCmd}`);
-    try {
-      await Rcon.send(finalHost, port, password, changeCmd);
-    } catch (e: any) {
-      console.log(`[MatchZy Pipeline] Mapchange gesendet (Socket-Abbruch erwartet): ${e.message}`);
-    }
-
-    // Wait for server map reboot
-    console.log(`[MatchZy Pipeline] Warte 10 Sekunden auf Server-Neustart...`);
-    await new Promise((resolve) => setTimeout(resolve, 10000));
-
-    // Step 3: Load match via URL (FSH-MatchZy can't find local files, but matchzy_loadmatch_url works)
-    const appUrl = settings.appUrl || process.env.REPLIT_URL || `https://esports-bracket-flow--buffinger1.replit.app`;
-    const configUrl = `${appUrl}/api/matchzy/active-match.json`;
-    const loadCmd = `matchzy_loadmatch_url "${configUrl}"`;
-    console.log(`[MatchZy Pipeline] RCON → ${loadCmd}`);
-    const output = await sendRconWithRetry(finalHost, port, password, loadCmd);
-
-    return { success: true, command: loadCmd, output };
-  } else {
-    // URL load method
-    const appUrl = settings.appUrl || process.env.REPLIT_URL || `https://esports-bracket-flow--buffinger1.replit.app`;
-    const configUrl = `${appUrl}/api/matchzy/active-match.json`;
-
-    // End existing match first
-    console.log(`[MatchZy Pipeline] RCON → css_endmatch`);
-    try {
-      await Rcon.send(finalHost, port, password, "css_endmatch");
-    } catch (e: any) {
-      console.log(`[MatchZy Pipeline] EndMatch: ${e.message} (nicht kritisch)`);
-    }
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    // Mapchange
-    let changeCmd = `changelevel "${targetMap}"`;
-    const workshopMatch = targetMap.match(/workshop\/(\d+)/i);
-    if (workshopMatch && workshopMatch[1]) {
-      changeCmd = `host_workshop_map ${workshopMatch[1]}`;
-    }
-    console.log(`[MatchZy Pipeline] RCON → ${changeCmd}`);
-    try {
-      await Rcon.send(finalHost, port, password, changeCmd);
-    } catch (e: any) {
-      console.log(`[MatchZy Pipeline] Mapchange gesendet: ${e.message}`);
-    }
-
-    console.log(`[MatchZy Pipeline] Warte 10 Sekunden auf Server-Neustart...`);
-    await new Promise((resolve) => setTimeout(resolve, 10000));
-
-    const loadCmd = `matchzy_loadmatch_url "${configUrl}"`;
-    console.log(`[MatchZy Pipeline] RCON → ${loadCmd}`);
-    const output = await sendRconWithRetry(finalHost, port, password, loadCmd);
-
-    return { success: true, command: loadCmd, output };
+  } catch (err: any) {
+    store.bracketState.serverStatus = "failed";
+    broadcastStateUpdate();
+    throw err;
   }
 }
 

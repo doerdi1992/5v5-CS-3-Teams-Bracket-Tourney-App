@@ -52,12 +52,14 @@ export interface BracketState {
   match4Winner: string | null;
   rolledMap: string | null;
 
+
   match4BestOf: 1 | 3;
   match4Score: { left: number; right: number };
   match1Rounds?: { left: number; right: number } | null;
   match2Rounds?: { left: number; right: number } | null;
   match3Rounds?: { left: number; right: number } | null;
   match4Rounds?: { left: number; right: number } | null;
+  serverStatus?: "idle" | "restarting" | "rebooting" | "loading_config" | "ready" | "failed";
 }
 
 function freshBracket(): BracketState {
@@ -79,6 +81,7 @@ function freshBracket(): BracketState {
     match2Rounds: null,
     match3Rounds: null,
     match4Rounds: null,
+    serverStatus: "idle",
   };
 }
 
@@ -389,6 +392,7 @@ class Store {
 
   resetActiveMatch(): void {
     const b = this.bracketState;
+    b.serverStatus = "idle";
     
     // Case 1: If there is a rolled map or active server details, clear them first
     if (b.rolledMap || this.activeServerDetails) {

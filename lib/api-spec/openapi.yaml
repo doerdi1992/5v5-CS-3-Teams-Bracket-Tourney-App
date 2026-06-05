@@ -405,6 +405,9 @@ components:
           type: ["string", "null"]
         rolledMap:
           type: ["string", "null"]
+        serverStatus:
+          type: string
+          enum: [idle, restarting, rebooting, loading_config, ready, failed]
 
     MatchWinnerInput:
       type: object

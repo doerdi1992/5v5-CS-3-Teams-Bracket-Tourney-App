@@ -158,7 +158,8 @@ export const GetBracketResponse = zod.object({
   "match1Winner": zod.string().nullable(),
   "match2Winner": zod.string().nullable(),
   "match3Winner": zod.string().nullable(),
-  "rolledMap": zod.string().nullable()
+  "rolledMap": zod.string().nullable(),
+  "serverStatus": zod.enum(['idle', 'restarting', 'rebooting', 'loading_config', 'ready', 'failed']).optional()
 })
 
 
@@ -177,7 +178,8 @@ export const SetMatchWinnerResponse = zod.object({
   "match1Winner": zod.string().nullable(),
   "match2Winner": zod.string().nullable(),
   "match3Winner": zod.string().nullable(),
-  "rolledMap": zod.string().nullable()
+  "rolledMap": zod.string().nullable(),
+  "serverStatus": zod.enum(['idle', 'restarting', 'rebooting', 'loading_config', 'ready', 'failed']).optional()
 })
 
 
@@ -192,7 +194,8 @@ export const ResetBracketResponse = zod.object({
   "match1Winner": zod.string().nullable(),
   "match2Winner": zod.string().nullable(),
   "match3Winner": zod.string().nullable(),
-  "rolledMap": zod.string().nullable()
+  "rolledMap": zod.string().nullable(),
+  "serverStatus": zod.enum(['idle', 'restarting', 'rebooting', 'loading_config', 'ready', 'failed']).optional()
 })
 
 
@@ -207,7 +210,8 @@ export const ResetActiveMatchResponse = zod.object({
   "match1Winner": zod.string().nullable(),
   "match2Winner": zod.string().nullable(),
   "match3Winner": zod.string().nullable(),
-  "rolledMap": zod.string().nullable()
+  "rolledMap": zod.string().nullable(),
+  "serverStatus": zod.enum(['idle', 'restarting', 'rebooting', 'loading_config', 'ready', 'failed']).optional()
 })
 
 
@@ -315,7 +319,8 @@ export const GetFullStateResponse = zod.object({
   "match1Winner": zod.string().nullable(),
   "match2Winner": zod.string().nullable(),
   "match3Winner": zod.string().nullable(),
-  "rolledMap": zod.string().nullable()
+  "rolledMap": zod.string().nullable(),
+  "serverStatus": zod.enum(['idle', 'restarting', 'rebooting', 'loading_config', 'ready', 'failed']).optional()
 }),
   "mapImages": zod.record(zod.string(), zod.string())
 })

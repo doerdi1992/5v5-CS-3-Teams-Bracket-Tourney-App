@@ -5,6 +5,7 @@
  * CS2 Tournament API
  * OpenAPI spec version: 0.1.0
  */
+import type { BracketStateServerStatus } from './bracketStateServerStatus';
 
 export interface BracketState {
   currentMatch: number;
@@ -22,4 +23,5 @@ export interface BracketState {
   match3Winner: string | null;
   /** @nullable */
   rolledMap: string | null;
+  serverStatus?: BracketStateServerStatus;
 }

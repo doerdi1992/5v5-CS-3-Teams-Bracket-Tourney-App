@@ -7,6 +7,7 @@
  */
 
 export * from './bracketState';
+export * from './bracketStateServerStatus';
 export * from './bulkPlayerInput';
 export * from './fullState';
 export * from './healthStatus';

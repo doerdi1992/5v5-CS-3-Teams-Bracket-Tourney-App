@@ -317,6 +317,40 @@ export default function ViewerPage() {
           </CardContent>
         </Card>
 
+        {/* Server Setup Status */}
+        {bracket?.serverStatus && bracket.serverStatus !== "idle" && bracket.serverStatus !== "ready" && (
+          <Card className={`border-dashed animate-in fade-in slide-in-from-top-3 duration-300 ${
+            bracket.serverStatus === "failed" 
+              ? "bg-red-500/[0.04] border-red-500/30 text-red-400" 
+              : "bg-cyan-500/[0.04] border-cyan-500/30 text-cyan-400"
+          }`}>
+            <CardContent className="p-5 flex items-center gap-4">
+              {bracket.serverStatus === "failed" ? (
+                <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
+                  <span className="text-red-500 font-bold">!</span>
+                </div>
+              ) : (
+                <Loader2 className="w-8 h-8 animate-spin flex-shrink-0" />
+              )}
+              <div className="flex-1 space-y-1 font-mono">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60">Server-Status</p>
+                <h3 className="text-sm font-bold uppercase tracking-wide">
+                  {bracket.serverStatus === "restarting" && "🔄 Server wird zurückgesetzt..."}
+                  {bracket.serverStatus === "rebooting" && "🎮 Karte wird gewechselt..."}
+                  {bracket.serverStatus === "loading_config" && "📋 Teams werden geladen..."}
+                  {bracket.serverStatus === "failed" && "❌ Konfiguration fehlgeschlagen!"}
+                </h3>
+                <p className="text-[10px] text-muted-foreground/50">
+                  {bracket.serverStatus === "restarting" && "Beende laufendes Match und starte Server neu..."}
+                  {bracket.serverStatus === "rebooting" && "Warte auf Neustart und Kartenladezeit (~10s)..."}
+                  {bracket.serverStatus === "loading_config" && "MatchZy Konfigurationsdatei wird übertragen..."}
+                  {bracket.serverStatus === "failed" && "RCON-Pipeline fehlgeschlagen. Du kannst dennoch manuell beitreten."}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Server connection */}
         {connectionString && (
           <Card className="bg-emerald-500/[0.04] border-emerald-500/20 animate-in fade-in slide-in-from-top-2 duration-300">
