@@ -182,7 +182,7 @@ class Store {
 
   addPlayer(name: string, status: PlayerStatus = "accepted", steamId?: string): Player | null {
     // Enforce limit when adding as accepted
-    if (status === "accepted" && this.getAcceptedCount() >= TournamentStore.MAX_ACCEPTED_PLAYERS) {
+    if (status === "accepted" && this.getAcceptedCount() >= Store.MAX_ACCEPTED_PLAYERS) {
       return null;
     }
     const id = randomUUID();
@@ -212,7 +212,7 @@ class Store {
     if (!player) return undefined;
     // Enforce limit when changing status to accepted
     if (updates.status === "accepted" && player.status !== "accepted") {
-      if (this.getAcceptedCount() >= TournamentStore.MAX_ACCEPTED_PLAYERS) {
+      if (this.getAcceptedCount() >= Store.MAX_ACCEPTED_PLAYERS) {
         return "limit";
       }
     }
