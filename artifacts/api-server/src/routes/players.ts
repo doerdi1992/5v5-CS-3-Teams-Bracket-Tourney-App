@@ -25,6 +25,10 @@ router.post("/players", (req, res) => {
     }
     const steamId = typeof req.body.steamId === "string" ? req.body.steamId.trim() : undefined;
     const player = store.addPlayer(name, "accepted", steamId || undefined);
+    if (!player) {
+      res.status(400).json({ error: `Maximum erreicht (${store.getAcceptedCount()}/15 Spieler). Entferne zuerst einen Spieler.` });
+      return;
+    }
     broadcastStateUpdate();
     res.status(201).json(player);
     return;
@@ -40,8 +44,14 @@ router.post("/players", (req, res) => {
   const added = names
     .map((n) => n.trim())
     .filter((n) => n.length > 0)
-    .map((name) => store.addPlayer(name, "accepted"));
+    .map((name) => store.addPlayer(name, "accepted"))
+    .filter((p) => p !== null);
   broadcastStateUpdate();
+  const skipped = names.length - added.length;
+  if (skipped > 0 && added.length === 0) {
+    res.status(400).json({ error: `Maximum erreicht (${store.getAcceptedCount()}/15 Spieler).` });
+    return;
+  }
   res.status(201).json(added);
 });
 
@@ -57,6 +67,10 @@ router.patch("/players/:id", (req, res) => {
     updates.steamId = (req.body as any).steamId ? String((req.body as any).steamId).trim() : null;
   }
   const updated = store.updatePlayer(params.data.id, updates);
+  if (updated === "limit") {
+    res.status(400).json({ error: `Maximum erreicht (15/15 Spieler). Entferne zuerst einen Spieler.` });
+    return;
+  }
   if (!updated) {
     res.status(404).json({ error: "Player not found" });
     return;
