@@ -818,40 +818,6 @@ export default function BracketMapRoll() {
             </CardContent>
           </Card>
         )}
-
-        {/* Server Connection ("Server beitreten") for Admin / Streamer if playing */}
-        {(() => {
-          const isMyMatchActive = (() => {
-            if (adminRole === "admin") return true; // Admins can always join
-            if (adminRole === "streamer" && streamerSteamId) {
-              const streamerPlayer = players.find((p: any) => p.steamId === streamerSteamId);
-              if (streamerPlayer?.team && currentTeams.includes(streamerPlayer.team)) {
-                return true;
-              }
-            }
-            return false;
-          })();
-
-          if (isMyMatchActive && bracket?.activeServerDetails) {
-            return (
-              <Card className="bg-emerald-500/[0.04] border-emerald-500/20 animate-in fade-in slide-in-from-top-2 duration-300">
-                <CardContent className="p-5 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Server className="w-5 h-5 text-emerald-500 animate-pulse" />
-                    <span className="font-mono text-sm uppercase tracking-wider text-emerald-500 font-bold">Match bereit</span>
-                  </div>
-                  <a href={getSteamUrl(bracket.activeServerDetails)} className="block">
-                    <Button className="w-full font-mono uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white gap-2.5 h-14 text-sm">
-                      <Play className="w-4.5 h-4.5 fill-current" />
-                      Server Beitreten
-                    </Button>
-                  </a>
-                </CardContent>
-              </Card>
-            );
-          }
-          return null;
-        })()}
       </div>
     </div>
   );

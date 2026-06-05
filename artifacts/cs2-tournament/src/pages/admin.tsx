@@ -3,16 +3,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Eye, EyeOff, Lock, Settings, Users, Swords, LogOut, Loader2, User, Link2, Check } from "lucide-react";
+import { Eye, EyeOff, Lock, Settings, Users, Swords, LogOut, Loader2, User, Link2, Check, Play } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
+import { useGetFullState, getGetFullStateQueryKey } from "@workspace/api-client-react";
 import PlayerManagement from "@/components/player-management";
 import BracketMapRoll from "@/components/bracket-map-roll";
 import MapSetup from "@/components/map-setup";
 
 const AUTH_KEY = "cs2_admin_auth";
 
-function StreamerSteamLink() {
+function StreamerSteamLink({ activeServerDetails, isStreamerPlaying, getSteamUrl }: { activeServerDetails?: string | null; isStreamerPlaying: boolean; getSteamUrl: (connStr: string | null) => string }) {
   const { toast } = useToast();
   const [steamId, setSteamId] = useState<string>(() => localStorage.getItem("cs2_streamer_steam_id") || "");
   const [steamName, setSteamName] = useState<string>(() => localStorage.getItem("cs2_streamer_name") || "");
@@ -114,6 +115,14 @@ function StreamerSteamLink() {
               <div className="flex items-center gap-2">
                 <span className="font-bold text-white/95">{steamName}</span>
                 <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20 uppercase">Streamer & Spieler</span>
+                {isStreamerPlaying && activeServerDetails && (
+                  <a href={getSteamUrl(activeServerDetails)}>
+                    <Button size="sm" className="h-6 font-mono text-[9px] uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white py-0.5 px-2.5 ml-2 gap-1 flex items-center">
+                      <Play className="w-2.5 h-2.5 fill-current" />
+                      Server Beitreten
+                    </Button>
+                  </a>
+                )}
               </div>
               <p className="text-xs text-muted-foreground/60">{steamId}</p>
             </div>
@@ -152,6 +161,38 @@ export default function AdminPage() {
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const { data: fullState } = useGetFullState({ query: { queryKey: getGetFullStateQueryKey(), enabled: authed } });
+  const bracket = fullState?.bracket as any;
+  const players = (fullState as any)?.players || [];
+  const activeServerDetails = bracket?.activeServerDetails;
+  const streamerSteamId = localStorage.getItem("cs2_streamer_steam_id");
+
+  const currentTeams =
+    bracket?.currentMatch === 1 ? ["A", "B"]
+    : bracket?.currentMatch === 2 ? (bracket.match1Winner === "A" ? ["B", "C"] : ["A", "C"])
+    : bracket?.currentMatch === 3 ? (bracket.match1Winner === "A" ? ["A", "C"] : ["B", "C"])
+    : bracket?.currentMatch === 4 && bracket.match4 ? [bracket.match4.split(" ")[0], bracket.match4.split(" ")[2]]
+    : [];
+
+  const streamerPlayer = streamerSteamId ? players.find((p: any) => p.steamId === streamerSteamId) : null;
+  const isStreamerPlaying = !!(streamerPlayer?.team && currentTeams.includes(streamerPlayer.team));
+
+  const getSteamUrl = (connStr: string | null): string => {
+    if (!connStr) return "";
+    let clean = connStr.trim();
+    if (clean.toLowerCase().startsWith("connect ")) clean = clean.substring(8).trim();
+    const parts = clean.split(";");
+    const ipPort = parts[0].trim();
+    let password = "";
+    if (parts.length > 1) {
+      const pwPart = parts[1].trim();
+      if (pwPart.toLowerCase().startsWith("password ")) password = pwPart.substring(9).trim();
+    }
+    return password ? `steam://connect/${ipPort}/${password}` : `steam://connect/${ipPort}`;
+  };
+
+  const showHeaderJoinButton = activeServerDetails && (role === "admin" || (role === "streamer" && isStreamerPlaying));
 
   useEffect(() => {
     if (sessionStorage.getItem(AUTH_KEY) === "1") {
@@ -276,6 +317,16 @@ export default function AdminPage() {
             {/* Action bar */}
             <div className="flex items-center gap-2">
 
+              {/* Server join button if ready (admin always, streamer if playing) */}
+              {showHeaderJoinButton && (
+                <a href={getSteamUrl(activeServerDetails)}>
+                  <Button size="sm" className="font-mono text-[10px] uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 h-8">
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    Server Beitreten
+                  </Button>
+                </a>
+              )}
+
               {/* Settings (admin only) */}
               {role === "admin" && (
                 <Sheet>
@@ -307,7 +358,13 @@ export default function AdminPage() {
           </div>
         </header>
 
-        {role === "streamer" && <StreamerSteamLink />}
+        {role === "streamer" && (
+          <StreamerSteamLink
+            activeServerDetails={activeServerDetails}
+            isStreamerPlaying={isStreamerPlaying}
+            getSteamUrl={getSteamUrl}
+          />
+        )}
 
         {/* ── Tabs ───────────────────────────────────────────── */}
         <Tabs defaultValue="bracket" className="w-full">
