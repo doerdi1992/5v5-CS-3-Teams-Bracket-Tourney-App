@@ -23,19 +23,10 @@ router.post("/create-match", checkApiKeyAuth, (req, res) => {
       return;
     }
 
-    const team1Name = payload.team1.name;
+    const team1Name = typeof payload.team1.name === "string" && payload.team1.name.trim() ? payload.team1.name.trim() : "Team 1";
     const team1Players = payload.team1.players;
-    const team2Name = payload.team2.name;
+    const team2Name = typeof payload.team2.name === "string" && payload.team2.name.trim() ? payload.team2.name.trim() : "Team 2";
     const team2Players = payload.team2.players;
-
-    if (typeof team1Name !== "string" || !team1Name.trim()) {
-      res.status(400).json({ error: "Validation Error: team1.name is required." });
-      return;
-    }
-    if (typeof team2Name !== "string" || !team2Name.trim()) {
-      res.status(400).json({ error: "Validation Error: team2.name is required." });
-      return;
-    }
 
     if (!team1Players || typeof team1Players !== "object" || Object.keys(team1Players).length === 0) {
       res.status(400).json({ error: "Validation Error: team1.players cannot be empty." });
