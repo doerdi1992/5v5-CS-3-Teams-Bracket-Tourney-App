@@ -305,8 +305,12 @@ export async function runMatchzyStartSequence(rolledMapName?: string): Promise<{
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // Step 2: Change map
-    console.log(`[MatchZy Pipeline] RCON → changelevel "${targetMap}"`);
-    const changeCmd = `changelevel "${targetMap}"`;
+    let changeCmd = `changelevel "${targetMap}"`;
+    const workshopMatch = targetMap.match(/workshop\/(\d+)/i);
+    if (workshopMatch && workshopMatch[1]) {
+      changeCmd = `host_workshop_map ${workshopMatch[1]}`;
+    }
+    console.log(`[MatchZy Pipeline] RCON → ${changeCmd}`);
     try {
       await Rcon.send(finalHost, port, password, changeCmd);
     } catch (e: any) {
@@ -340,8 +344,12 @@ export async function runMatchzyStartSequence(rolledMapName?: string): Promise<{
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // Mapchange
-    console.log(`[MatchZy Pipeline] RCON → changelevel "${targetMap}"`);
-    const changeCmd = `changelevel "${targetMap}"`;
+    let changeCmd = `changelevel "${targetMap}"`;
+    const workshopMatch = targetMap.match(/workshop\/(\d+)/i);
+    if (workshopMatch && workshopMatch[1]) {
+      changeCmd = `host_workshop_map ${workshopMatch[1]}`;
+    }
+    console.log(`[MatchZy Pipeline] RCON → ${changeCmd}`);
     try {
       await Rcon.send(finalHost, port, password, changeCmd);
     } catch (e: any) {
