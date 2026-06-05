@@ -247,8 +247,11 @@ export async function runMatchzyStartSequence(rolledMapName?: string): Promise<{
   // Decide target map (explicit parameter or default map from match configuration)
   const targetMap = rolledMapName ? resolveMapPath(rolledMapName) : resolvedMap;
   
-  // Align config's maplist with our map choice
-  config.maplist = [targetMap];
+  // Only override maplist for BO1 — for BO3 tiebreaker, keep the 3-map pool
+  if (config.num_maps === 1) {
+    config.maplist = [targetMap];
+  }
+
 
   const content = JSON.stringify(config, null, 2);
   console.log(`[MatchZy Pipeline] JSON erstellt -> MatchID ${matchId}, Map: ${targetMap}`);

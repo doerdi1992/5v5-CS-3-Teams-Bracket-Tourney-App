@@ -80,7 +80,8 @@ export const DeletePlayerResponse = zod.object({
  */
 export const RegisterViewerBody = zod.object({
   "name": zod.string(),
-  "clientId": zod.string()
+  "clientId": zod.string(),
+  "steamId": zod.string()
 })
 
 

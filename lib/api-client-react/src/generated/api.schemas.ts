@@ -48,6 +48,7 @@ export interface BulkPlayerInput {
 export interface ViewerRegistration {
   name: string;
   clientId: string;
+  steamId: string;
 }
 
 export type PlayerUpdateStatus = typeof PlayerUpdateStatus[keyof typeof PlayerUpdateStatus];

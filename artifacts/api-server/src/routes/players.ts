@@ -192,12 +192,16 @@ router.get("/players/resolve-steam", async (req, res) => {
 router.post("/players/register", (req, res) => {
   const parsed = RegisterViewerBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Invalid body" });
+    res.status(400).json({ error: "Ungültige Registrierungsdaten. Steam-Profil oder SteamID64 ist erforderlich." });
     return;
   }
-  const { name, clientId } = parsed.data;
-  const steamId = (req.body as any).steamId ? String((req.body as any).steamId).trim() : undefined;
-  const player = store.addViewerPlayer(clientId, name.trim(), steamId);
+  const { name, clientId, steamId } = parsed.data;
+  const cleanSteamId = steamId.trim();
+  if (!/^\d{17}$/.test(cleanSteamId)) {
+    res.status(400).json({ error: "Ungültige Steam-ID. Eine 17-stellige SteamID64 ist erforderlich." });
+    return;
+  }
+  const player = store.addViewerPlayer(clientId, name.trim(), cleanSteamId);
   broadcastStateUpdate();
   res.status(201).json(player);
 });

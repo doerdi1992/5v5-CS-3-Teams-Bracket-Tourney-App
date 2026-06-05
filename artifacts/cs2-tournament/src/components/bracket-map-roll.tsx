@@ -5,7 +5,6 @@ import {
   useSetMatchWinner,
   useResetBracket,
   useRollMap,
-  useBroadcastServer,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -115,7 +114,7 @@ export default function BracketMapRoll() {
   const setWinnerMut = useSetMatchWinner();
   const resetBracketMut = useResetBracket();
   const rollMapMut = useRollMap();
-  const broadcastMut = useBroadcastServer();
+  // broadcastMut removed — server-side confirm-roll handles broadcast after RCON
 
   const getAudioCtx = useCallback((): AudioContext => {
     if (!audioCtxRef.current) audioCtxRef.current = new AudioContext();
@@ -205,31 +204,21 @@ export default function BracketMapRoll() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ map: winner }),
-        }).then(() => {
-          queryClient.invalidateQueries({ queryKey: getGetFullStateQueryKey() });
-
-          // Auto-broadcast server if enabled and connection string is set
-          const lsAutoSend = localStorage.getItem("cs2_auto_send") === "1";
-          const lsConnectionString = localStorage.getItem("cs2_connection_string") ?? "";
-          if (lsAutoSend && lsConnectionString.trim()) {
-            broadcastMut.mutate(
-              { data: { connectionString: lsConnectionString } },
-              {
-                onSuccess: () => {
-                  toast({ title: "Server automatisch gesendet", description: "Verbindungsdaten an aktive Teams übertragen." });
-                },
-              }
-            );
-          }
-
-          // Note: Automatic MatchZy start is now handled securely on the backend
-          // inside /api/maps/confirm-roll according to the serverSettings.autoStartMatch config.
-        });
+        })
+          .then((r) => {
+            if (!r.ok) throw new Error(`Server: ${r.status}`);
+            queryClient.invalidateQueries({ queryKey: getGetFullStateQueryKey() });
+            // Server broadcast + RCON handled in backend background pipeline
+          })
+          .catch((err) => {
+            console.error("[confirm-roll] failed:", err);
+            toast({ title: "Fehler", description: `Kartenbestätigung fehlgeschlagen: ${err.message}`, variant: "destructive" });
+          });
       }
     };
 
     rafRef.current = requestAnimationFrame(tick);
-  }, [queryClient, broadcastMut, toast]);
+  }, [queryClient, toast]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleSetWinner = (winner: "A" | "B" | "C") => {
@@ -429,7 +418,7 @@ export default function BracketMapRoll() {
                           )}
                         </div>
                       </div>
-                      <div className={`flex items-center justify-between font-mono ${isActive ? "text-2xl font-black" : "text-base font-bold"}`}>
+                      <div className={`flex items-center justify-between font-mono ${isActive ? "text-3xl font-black tracking-tight" : "text-lg font-bold"}`}>
                         <div className="flex flex-col items-start w-2/5">
                           <div className="flex items-center gap-2">
                             <span className={winner === leftTeam && winner ? teamColorClass(leftTeam) : ""}>{left}</span>
@@ -440,7 +429,7 @@ export default function BracketMapRoll() {
                             )}
                           </div>
                           {isActive && (
-                            <span className="text-[10px] text-muted-foreground/60 font-normal mt-0.5 truncate w-full" title={getTeamPlayersString(leftTeam)}>
+                            <span className="text-sm text-muted-foreground/70 font-normal mt-1 truncate w-full" title={getTeamPlayersString(leftTeam)}>
                               {getTeamPlayersString(leftTeam) || "Keine Spieler"}
                             </span>
                           )}
@@ -456,7 +445,7 @@ export default function BracketMapRoll() {
                             <span className={winner === rightTeam && winner ? teamColorClass(rightTeam) : ""}>{right}</span>
                           </div>
                           {isActive && (
-                            <span className="text-[10px] text-muted-foreground/60 font-normal mt-0.5 truncate w-full" title={getTeamPlayersString(rightTeam)}>
+                            <span className="text-sm text-muted-foreground/70 font-normal mt-1 truncate w-full" title={getTeamPlayersString(rightTeam)}>
                               {getTeamPlayersString(rightTeam) || "Keine Spieler"}
                             </span>
                           )}

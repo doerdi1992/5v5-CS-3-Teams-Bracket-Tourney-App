@@ -332,11 +332,13 @@ components:
 
     ViewerRegistration:
       type: object
-      required: [name, clientId]
+      required: [name, clientId, steamId]
       properties:
         name:
           type: string
         clientId:
+          type: string
+        steamId:
           type: string
 
     PlayerUpdate:

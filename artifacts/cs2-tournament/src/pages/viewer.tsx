@@ -117,7 +117,7 @@ export default function ViewerPage() {
     e.preventDefault();
     const query = registerInput.trim();
     if (!query) {
-      toast({ variant: "destructive", title: "Eingabe erforderlich", description: "Bitte füge deinen Steam-Profil-Link ein." });
+      toast({ variant: "destructive", title: "Eingabe erforderlich", description: "Bitte füge deinen Steam-Profil-Link oder deine SteamID64 ein." });
       return;
     }
 
@@ -145,23 +145,27 @@ export default function ViewerPage() {
     }
 
     if (!resolvedSteamId) {
-      if (query.includes("steamcommunity.com") || query.includes("http")) {
-        toast({ variant: "destructive", title: "Profil nicht gefunden", description: "Steam-Link ungültig. Bitte prüfe den Link." });
-        setIsRegistering(false);
-        return;
-      }
       if (/^\d{17}$/.test(query)) {
         resolvedSteamId = query;
         finalName = `Spieler_${query.slice(-4)}`;
       } else {
-        finalName = query;
+        const isUrl = query.includes("steamcommunity.com") || query.includes("http");
+        toast({
+          variant: "destructive",
+          title: isUrl ? "Profil nicht gefunden" : "Steam-ID erforderlich",
+          description: isUrl
+            ? "Steam-Link ungültig oder Profil nicht erreichbar. Bitte prüfe den Link oder gib deine 17-stellige SteamID64 ein."
+            : "Bitte gib deinen Steam-Profil-Link (z.B. https://steamcommunity.com/id/...) oder deine 17-stellige SteamID64 ein."
+        });
+        setIsRegistering(false);
+        return;
       }
     }
 
     fetch("/api/players/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: finalName, clientId, steamId: resolvedSteamId || undefined }),
+      body: JSON.stringify({ name: finalName, clientId, steamId: resolvedSteamId }),
     })
       .then(async (res) => {
         if (!res.ok) { const errData = await res.json(); throw new Error(errData.error || "Serverfehler"); }
@@ -169,8 +173,7 @@ export default function ViewerPage() {
       })
       .then(() => {
         localStorage.setItem("cs2_player_name", finalName);
-        if (resolvedSteamId) localStorage.setItem("cs2_steam_id", resolvedSteamId);
-        else localStorage.removeItem("cs2_steam_id");
+        localStorage.setItem("cs2_steam_id", resolvedSteamId);
         setPlayerName(finalName);
         setIsRegistered(true);
         setLastRegisterTime(Date.now());
@@ -236,7 +239,7 @@ export default function ViewerPage() {
             <Input
               value={registerInput}
               onChange={(e) => setRegisterInput(e.target.value)}
-              placeholder="Steam-Profil-Link einfügen..."
+              placeholder="Steam-Profil-Link oder SteamID64..."
               className="font-mono text-sm bg-white/[0.04] border-white/[0.08] h-12 text-center placeholder:text-muted-foreground/30 focus-visible:ring-primary/40 focus-visible:border-primary/30"
               autoFocus
             />
@@ -254,7 +257,7 @@ export default function ViewerPage() {
           </form>
 
           <p className="text-[9px] font-mono text-muted-foreground/30 leading-relaxed">
-            z.B. https://steamcommunity.com/id/deinname
+            z.B. https://steamcommunity.com/id/deinname oder 76561198000000000
           </p>
         </div>
       </div>

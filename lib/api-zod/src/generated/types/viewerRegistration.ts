@@ -9,4 +9,5 @@
 export interface ViewerRegistration {
   name: string;
   clientId: string;
+  steamId: string;
 }
