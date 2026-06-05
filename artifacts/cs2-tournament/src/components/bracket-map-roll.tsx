@@ -263,6 +263,11 @@ export default function BracketMapRoll() {
   };
 
   const handleResetBracket = () => {
+    const confirmReset = window.confirm(
+      "Achtung: Bist du sicher, dass du das gesamte Turnier-Bracket zurücksetzen möchtest?\n\nDadurch werden ALLE bisherigen Spielergebnisse, Rundenstände und Gewinner gelöscht und das Turnier startet von vorne. Dies kann nicht rückgängig gemacht werden!"
+    );
+    if (!confirmReset) return;
+
     resetBracketMut.mutate(undefined, {
       onSuccess: () => {
         toast({ title: "Bracket zurückgesetzt", description: "Turnier-Status gelöscht." });
@@ -629,19 +634,6 @@ export default function BracketMapRoll() {
                         </div>
                       </div>
                     )}
-                    
-                    <div className="pt-2 border-t border-border/20 mt-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/40 hover:text-destructive w-full h-8"
-                        onClick={handleResetActiveMatch}
-                        disabled={resetActiveMatchMut.isPending}
-                      >
-                        <RefreshCw className="w-3 h-3 mr-1.5" />
-                        Aktuelle Partie / Karte zurücksetzen
-                      </Button>
-                    </div>
                   </div>
                 )}
               </div>
