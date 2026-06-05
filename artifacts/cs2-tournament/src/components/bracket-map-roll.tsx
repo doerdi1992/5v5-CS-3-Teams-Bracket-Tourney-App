@@ -654,80 +654,6 @@ export default function BracketMapRoll() {
 
       {/* ── Right: Map Roll + Server ── */}
       <div className="space-y-6">
-        {/* Server Setup Status */}
-        {bracket?.serverStatus && bracket.serverStatus !== "idle" && bracket.serverStatus !== "ready" && (
-          <Card className={`border-dashed animate-in fade-in slide-in-from-top-3 duration-300 ${
-            bracket.serverStatus === "failed" 
-              ? "bg-red-500/[0.04] border-red-500/30 text-red-400" 
-              : "bg-cyan-500/[0.04] border-cyan-500/30 text-cyan-400"
-          }`}>
-            <CardContent className="p-5 flex items-center gap-4">
-              {bracket.serverStatus === "failed" ? (
-                <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
-                  <span className="text-red-500 font-bold">!</span>
-                </div>
-              ) : (
-                <Loader2 className="w-8 h-8 animate-spin flex-shrink-0" />
-              )}
-              <div className="flex-1 space-y-1 font-mono">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60">Server-Status</p>
-                <h3 className="text-sm font-bold uppercase tracking-wide">
-                  {bracket.serverStatus === "restarting" && "🔄 Server wird zurückgesetzt..."}
-                  {bracket.serverStatus === "rebooting" && "🎮 Karte wird gewechselt..."}
-                  {bracket.serverStatus === "loading_config" && "📋 Teams werden geladen..."}
-                  {bracket.serverStatus === "failed" && "❌ Konfiguration fehlgeschlagen!"}
-                </h3>
-                <p className="text-[10px] text-muted-foreground/50">
-                  {bracket.serverStatus === "restarting" && "Beende laufendes Match und starte Server neu..."}
-                  {bracket.serverStatus === "rebooting" && "Warte auf Neustart und Kartenladezeit (~10s)..."}
-                  {bracket.serverStatus === "loading_config" && "MatchZy Konfigurationsdatei wird übertragen..."}
-                  {bracket.serverStatus === "failed" && "RCON-Pipeline fehlgeschlagen. Du kannst dennoch manuell beitreten."}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Server Connection ("Server beitreten") for Admin / Streamer if playing */}
-        {(() => {
-          const isMyMatchActive = (() => {
-            if (adminRole === "admin") return true; // Admins can always join
-            if (adminRole === "streamer" && streamerSteamId) {
-              const streamerPlayer = players.find((p: any) => p.steamId === streamerSteamId);
-              if (streamerPlayer?.team && currentTeams.includes(streamerPlayer.team)) {
-                return true;
-              }
-            }
-            return false;
-          })();
-
-          if (isMyMatchActive && bracket?.activeServerDetails) {
-            return (
-              <Card className="bg-emerald-500/[0.04] border-emerald-500/20 animate-in fade-in slide-in-from-top-2 duration-300">
-                <CardContent className="p-5 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Server className="w-5 h-5 text-emerald-500 animate-pulse" />
-                    <span className="font-mono text-sm uppercase tracking-wider text-emerald-500 font-bold">Match bereit</span>
-                  </div>
-                  <div className="p-3 bg-black/40 rounded border border-white/[0.06] flex items-center justify-between">
-                    <code className="text-cyan-400 font-mono text-sm break-all">{bracket.activeServerDetails}</code>
-                    <Button variant="ghost" size="icon" onClick={() => copyConnectionString(bracket.activeServerDetails)} className="ml-2 h-9 w-9 text-muted-foreground hover:text-white">
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  <a href={getSteamUrl(bracket.activeServerDetails)} className="block">
-                    <Button className="w-full font-mono uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white gap-2.5 h-14 text-sm">
-                      <Play className="w-4.5 h-4.5 fill-current" />
-                      Server Beitreten
-                    </Button>
-                  </a>
-                </CardContent>
-              </Card>
-            );
-          }
-          return null;
-        })()}
-
         <Card className="border-border/50 border-t-secondary border-t-2">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -867,7 +793,79 @@ export default function BracketMapRoll() {
           </CardContent>
         </Card>
 
+        {/* Server Setup Status */}
+        {bracket?.serverStatus && bracket.serverStatus !== "idle" && bracket.serverStatus !== "ready" && (
+          <Card className={`border-dashed animate-in fade-in slide-in-from-top-3 duration-300 ${
+            bracket.serverStatus === "failed" 
+              ? "bg-red-500/[0.04] border-red-500/30 text-red-400" 
+              : "bg-cyan-500/[0.04] border-cyan-500/30 text-cyan-400"
+          }`}>
+            <CardContent className="p-5 flex items-center gap-4">
+              {bracket.serverStatus === "failed" ? (
+                <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
+                  <span className="text-red-500 font-bold">!</span>
+                </div>
+              ) : (
+                <Loader2 className="w-8 h-8 animate-spin flex-shrink-0" />
+              )}
+              <div className="flex-1 space-y-1 font-mono">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60">Server-Status</p>
+                <h3 className="text-sm font-bold uppercase tracking-wide">
+                  {bracket.serverStatus === "restarting" && "🔄 Server wird zurückgesetzt..."}
+                  {bracket.serverStatus === "rebooting" && "🎮 Karte wird gewechselt..."}
+                  {bracket.serverStatus === "loading_config" && "📋 Teams werden geladen..."}
+                  {bracket.serverStatus === "failed" && "❌ Konfiguration fehlgeschlagen!"}
+                </h3>
+                <p className="text-[10px] text-muted-foreground/50">
+                  {bracket.serverStatus === "restarting" && "Beende laufendes Match und starte Server neu..."}
+                  {bracket.serverStatus === "rebooting" && "Warte auf Neustart und Kartenladezeit (~10s)..."}
+                  {bracket.serverStatus === "loading_config" && "MatchZy Konfigurationsdatei wird übertragen..."}
+                  {bracket.serverStatus === "failed" && "RCON-Pipeline fehlgeschlagen. Du kannst dennoch manuell beitreten."}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
+        {/* Server Connection ("Server beitreten") for Admin / Streamer if playing */}
+        {(() => {
+          const isMyMatchActive = (() => {
+            if (adminRole === "admin") return true; // Admins can always join
+            if (adminRole === "streamer" && streamerSteamId) {
+              const streamerPlayer = players.find((p: any) => p.steamId === streamerSteamId);
+              if (streamerPlayer?.team && currentTeams.includes(streamerPlayer.team)) {
+                return true;
+              }
+            }
+            return false;
+          })();
+
+          if (isMyMatchActive && bracket?.activeServerDetails) {
+            return (
+              <Card className="bg-emerald-500/[0.04] border-emerald-500/20 animate-in fade-in slide-in-from-top-2 duration-300">
+                <CardContent className="p-5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Server className="w-5 h-5 text-emerald-500 animate-pulse" />
+                    <span className="font-mono text-sm uppercase tracking-wider text-emerald-500 font-bold">Match bereit</span>
+                  </div>
+                  <div className="p-3 bg-black/40 rounded border border-white/[0.06] flex items-center justify-between">
+                    <code className="text-cyan-400 font-mono text-sm break-all">{bracket.activeServerDetails}</code>
+                    <Button variant="ghost" size="icon" onClick={() => copyConnectionString(bracket.activeServerDetails)} className="ml-2 h-9 w-9 text-muted-foreground hover:text-white">
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <a href={getSteamUrl(bracket.activeServerDetails)} className="block">
+                    <Button className="w-full font-mono uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white gap-2.5 h-14 text-sm">
+                      <Play className="w-4.5 h-4.5 fill-current" />
+                      Server Beitreten
+                    </Button>
+                  </a>
+                </CardContent>
+              </Card>
+            );
+          }
+          return null;
+        })()}
       </div>
     </div>
   );
