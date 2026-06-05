@@ -381,6 +381,7 @@ class Store {
 
   resetBracket(): BracketState {
     this.bracketState = freshBracket();
+    this.activeServerDetails = null;
     return this.bracketState;
   }
 
@@ -491,6 +492,7 @@ class Store {
         ...this.bracketState,
         tiebreakerWinner: tiebreaker ? tiebreaker.team : null,
         tiebreakerRounds: tiebreaker ? tiebreaker.rounds : null,
+        activeServerDetails: this.activeServerDetails,
       },
       mapImages: this.getMapImages(),
     };

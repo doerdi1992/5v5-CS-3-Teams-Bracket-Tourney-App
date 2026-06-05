@@ -74,6 +74,7 @@ interface ExtendedBracket {
   match4Rounds?: { left: number; right: number } | null;
   tiebreakerWinner?: string | null;
   tiebreakerRounds?: Record<string, number> | null;
+  activeServerDetails?: string | null;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────

@@ -206,9 +206,12 @@ export default function ViewerPage() {
       if (!isMyMatchActive) {
         setConnectionString(null);
         localStorage.removeItem("cs2_viewer_connection");
+      } else if (bracket.activeServerDetails && connectionString !== bracket.activeServerDetails) {
+        setConnectionString(bracket.activeServerDetails);
+        localStorage.setItem("cs2_viewer_connection", bracket.activeServerDetails);
       }
     }
-  }, [isMyMatchActive, isRegistered, bracket, players]);
+  }, [isMyMatchActive, isRegistered, bracket, players, connectionString]);
 
   // ─── REGISTRATION SCREEN ───────────────────────────────
   if (!isRegistered) {

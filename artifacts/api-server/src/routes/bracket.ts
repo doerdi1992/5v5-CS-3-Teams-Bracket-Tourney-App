@@ -12,6 +12,7 @@ router.get("/bracket", (_req, res) => {
     ...store.bracketState,
     tiebreakerWinner: tiebreaker ? tiebreaker.team : null,
     tiebreakerRounds: tiebreaker ? tiebreaker.rounds : null,
+    activeServerDetails: store.activeServerDetails,
   });
 });
 
