@@ -852,6 +852,76 @@ export const useResetBracket = <TError = ErrorType<unknown>,
       return useMutation(getResetBracketMutationOptions(options));
     }
 
+export const getResetActiveMatchUrl = () => {
+
+
+
+
+  return `/api/bracket/reset-active`
+}
+
+/**
+ * @summary Reset active match or rolled map
+ */
+export const resetActiveMatch = async ( options?: RequestInit): Promise<BracketState> => {
+
+  return customFetch<BracketState>(getResetActiveMatchUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getResetActiveMatchMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetActiveMatch>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resetActiveMatch>>, TError,void, TContext> => {
+
+const mutationKey = ['resetActiveMatch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resetActiveMatch>>, void> = () => {
+
+
+          return  resetActiveMatch(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResetActiveMatchMutationResult = NonNullable<Awaited<ReturnType<typeof resetActiveMatch>>>
+
+    export type ResetActiveMatchMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Reset active match or rolled map
+ */
+export const useResetActiveMatch = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetActiveMatch>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resetActiveMatch>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getResetActiveMatchMutationOptions(options));
+    }
+
 export const getRollMapUrl = () => {
 
 

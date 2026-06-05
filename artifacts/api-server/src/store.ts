@@ -385,6 +385,58 @@ class Store {
     return this.bracketState;
   }
 
+  resetActiveMatch(): void {
+    const b = this.bracketState;
+    
+    // Case 1: If there is a rolled map or active server details, clear them first
+    if (b.rolledMap || this.activeServerDetails) {
+      b.rolledMap = null;
+      this.activeServerDetails = null;
+      return;
+    }
+
+    // Case 2: If we are at the finished state, go back to the last match and clear winner
+    if (b.currentMatch === 5) {
+      if (b.match4) {
+        b.currentMatch = 4;
+        b.match4Winner = null;
+        b.match4Rounds = null;
+        b.match4Score = { left: 0, right: 0 };
+      } else {
+        b.currentMatch = 3;
+        b.match3Winner = null;
+        b.match3Rounds = null;
+      }
+      return;
+    }
+
+    // Case 3: If current match has no rolled map but we are on match > 1, go back one match and clear its winner
+    if (b.currentMatch === 4) {
+      b.currentMatch = 3;
+      b.match3Winner = null;
+      b.match3Rounds = null;
+      b.rolledMap = null;
+      this.activeServerDetails = null;
+    } else if (b.currentMatch === 3) {
+      b.currentMatch = 2;
+      b.match2Winner = null;
+      b.match2Rounds = null;
+      b.rolledMap = null;
+      this.activeServerDetails = null;
+    } else if (b.currentMatch === 2) {
+      b.currentMatch = 1;
+      b.match1Winner = null;
+      b.match1Rounds = null;
+      b.rolledMap = null;
+      this.activeServerDetails = null;
+    } else if (b.currentMatch === 1) {
+      b.match1Winner = null;
+      b.match1Rounds = null;
+      b.rolledMap = null;
+      this.activeServerDetails = null;
+    }
+  }
+
   rollMap(maps: string[]): string {
     if (maps.length === 0) return "Mirage";
     const rolled = maps[Math.floor(Math.random() * maps.length)];

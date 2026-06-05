@@ -40,6 +40,12 @@ router.post("/bracket/reset", (_req, res) => {
   res.json(bracket);
 });
 
+router.post("/bracket/reset-active", (_req, res) => {
+  store.resetActiveMatch();
+  broadcastStateUpdate();
+  res.json(store.bracketState);
+});
+
 // BO3 toggle is only available for the tiebreaker match (Match 4)
 // This endpoint was removed — use /bracket/tiebreaker-format instead
 

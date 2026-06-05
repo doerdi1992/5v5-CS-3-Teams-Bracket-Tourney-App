@@ -197,6 +197,21 @@ export const ResetBracketResponse = zod.object({
 
 
 /**
+ * @summary Reset active match or rolled map
+ */
+export const ResetActiveMatchResponse = zod.object({
+  "currentMatch": zod.number(),
+  "match1": zod.string().nullish(),
+  "match2": zod.string().nullish(),
+  "match3": zod.string().nullish(),
+  "match1Winner": zod.string().nullable(),
+  "match2Winner": zod.string().nullable(),
+  "match3Winner": zod.string().nullable(),
+  "rolledMap": zod.string().nullable()
+})
+
+
+/**
  * @summary Roll a random map
  */
 export const RollMapBody = zod.object({

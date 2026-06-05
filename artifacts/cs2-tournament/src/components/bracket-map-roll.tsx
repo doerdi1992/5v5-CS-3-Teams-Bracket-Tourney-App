@@ -4,6 +4,7 @@ import {
   getGetFullStateQueryKey,
   useSetMatchWinner,
   useResetBracket,
+  useResetActiveMatch,
   useRollMap,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -113,6 +114,7 @@ export default function BracketMapRoll() {
   // ── Mutations ──────────────────────────────────────────────────────────────
   const setWinnerMut = useSetMatchWinner();
   const resetBracketMut = useResetBracket();
+  const resetActiveMatchMut = useResetActiveMatch();
   const rollMapMut = useRollMap();
   // broadcastMut removed — server-side confirm-roll handles broadcast after RCON
 
@@ -239,6 +241,18 @@ export default function BracketMapRoll() {
     resetBracketMut.mutate(undefined, {
       onSuccess: () => {
         toast({ title: "Bracket zurückgesetzt", description: "Turnier-Status gelöscht." });
+        setSelectedWinner(null);
+        queryClient.invalidateQueries({ queryKey: getGetFullStateQueryKey() });
+      },
+    });
+  };
+
+  const handleResetActiveMatch = () => {
+    resetActiveMatchMut.mutate(undefined, {
+      onSuccess: () => {
+        toast({ title: "Schritt zurückgesetzt", description: "Aktive Partie / Karte zurückgesetzt." });
+        setRevealed(false);
+        setStripItems([]);
         setSelectedWinner(null);
         queryClient.invalidateQueries({ queryKey: getGetFullStateQueryKey() });
       },
@@ -590,6 +604,19 @@ export default function BracketMapRoll() {
                         </div>
                       </div>
                     )}
+                    
+                    <div className="pt-2 border-t border-border/20 mt-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/40 hover:text-destructive w-full h-8"
+                        onClick={handleResetActiveMatch}
+                        disabled={resetActiveMatchMut.isPending}
+                      >
+                        <RefreshCw className="w-3 h-3 mr-1.5" />
+                        Aktuelle Partie / Karte zurücksetzen
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -719,14 +746,25 @@ export default function BracketMapRoll() {
               </div>
             )}
 
-            <Button
-              className="w-full font-mono text-base h-12 uppercase tracking-widest"
-              onClick={handleRollMap}
-              disabled={isSpinning || rollMapMut.isPending}
-            >
-              <Dices className="w-5 h-5 mr-2" />
-              {isSpinning ? "Dreht..." : "Karte drehen"}
-            </Button>
+            {(!bracket?.rolledMap || isSpinning) ? (
+              <Button
+                className="w-full font-mono text-base h-12 uppercase tracking-widest"
+                onClick={handleRollMap}
+                disabled={isSpinning || rollMapMut.isPending}
+              >
+                <Dices className="w-5 h-5 mr-2" />
+                {isSpinning ? "Dreht..." : "Karte drehen"}
+              </Button>
+            ) : (
+              <Button
+                className="w-full font-mono text-base h-12 uppercase tracking-widest bg-destructive hover:bg-destructive/90 text-white"
+                onClick={handleResetActiveMatch}
+                disabled={resetActiveMatchMut.isPending}
+              >
+                <RefreshCw className="w-5 h-5 mr-2" />
+                Partie / Karte zurücksetzen
+              </Button>
+            )}
           </CardContent>
         </Card>
 

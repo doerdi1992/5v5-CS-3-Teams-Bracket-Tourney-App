@@ -193,6 +193,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/BracketState"
 
+  /bracket/reset-active:
+    post:
+      operationId: resetActiveMatch
+      tags: [bracket]
+      summary: Reset active match or rolled map
+      responses:
+        "200":
+          description: Reset active match
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BracketState"
+
   /maps/roll:
     post:
       operationId: rollMap
