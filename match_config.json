@@ -1,0 +1,28 @@
+{
+  "matchid": "tmp_test_match",
+  "num_maps": 1,
+  "maplist": ["de_cache"],
+  "skip_veto": true,
+  "players_per_team": 5,
+  "min_players_to_ready": 0,
+  "min_spectators_to_ready": 0,
+  "series_can_clinch": true,
+  "map_sides": ["knife"],
+  "team1": {
+    "name": "Team 1",
+    "players": {
+      "76561198091064949": "mosca"
+    }
+  },
+  "team2": {
+    "name": "Team 2",
+    "players": {
+      "76561198000000002": "MockPlayer"
+    }
+  },
+  "cvars": {
+    "mp_overtime_enable": "1",
+    "mp_overtime_maxrounds": "6",
+    "mp_maxrounds": "24"
+  }
+}

@@ -73,6 +73,7 @@ onlyBuiltDependencies:
   - esbuild
   - msw
   - unrs-resolver
+  - better-sqlite3
 
 overrides:
   # replit uses linux-x64 only, we can exclude all other platforms
