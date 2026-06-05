@@ -20,6 +20,7 @@ export interface ServerSettings {
   autoStartMatch: boolean;
   appUrl?: string;
   adminPassword?: string;
+  apiKey?: string;
 }
 
 export interface Player {
@@ -119,6 +120,7 @@ class Store {
       autoStartMatch: true,
       appUrl: "https://esports-bracket-flow--buffinger1.replit.app",
       adminPassword: "ztjhfts3425ghgd",
+      apiKey: process.env["API_KEY"] || "sk_live_janaxF",
     };
   }
 
@@ -140,6 +142,10 @@ class Store {
       } else if (key === "adminPassword") {
         if (val && val !== "********") {
           merged.adminPassword = val as string;
+        }
+      } else if (key === "apiKey") {
+        if (val && val !== "********") {
+          merged.apiKey = val as string;
         }
       } else {
         (merged as any)[key] = val;
@@ -171,6 +177,7 @@ class Store {
       rconPassword: this.serverSettings.rconPassword ? "********" : "",
       ftpPassword: this.serverSettings.ftpPassword ? "********" : "",
       adminPassword: this.serverSettings.adminPassword ? "********" : "",
+      apiKey: this.serverSettings.apiKey ? "********" : "",
     };
   }
 

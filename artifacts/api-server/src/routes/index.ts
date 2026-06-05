@@ -8,6 +8,7 @@ import stateRouter from "./state.js";
 import adminAuthRouter from "./admin-auth.js";
 import mapImagesRouter from "./map-images.js";
 import matchzyRouter from "./matchzy.js";
+import externalApiRouter from "./external-api.js";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(bracketRouter);
 router.use(serverBroadcastRouter);
 router.use(stateRouter);
 router.use(matchzyRouter);
+router.use(externalApiRouter);
 
 export default router;

@@ -79,6 +79,35 @@ export default function ViewerPage() {
     return () => { socket.off("server_broadcast", handleBroadcast); };
   }, [players, playerName]);
 
+  useEffect(() => {
+    if (isRegistered && players) {
+      const me = players.find((p) => p.name === playerName);
+      if (me?.status === "rejected" || !me) {
+        localStorage.removeItem("cs2_player_name");
+        localStorage.removeItem("cs2_steam_id");
+        localStorage.removeItem("cs2_viewer_connection");
+        localStorage.removeItem("cs2_client_id");
+
+        setIsRegistered(false);
+        setPlayerName("");
+        setRegisterInput("");
+        setConnectionString(null);
+
+        const newId = crypto.randomUUID();
+        localStorage.setItem("cs2_client_id", newId);
+        setClientId(newId);
+
+        toast({
+          variant: "destructive",
+          title: me?.status === "rejected" ? "Anmeldung abgelehnt" : "Registrierung entfernt",
+          description: me?.status === "rejected"
+            ? "Deine Anmeldung für das Turnier wurde abgelehnt. Du kannst dich jetzt erneut anmelden."
+            : "Deine Registrierung wurde vom Admin entfernt. Du kannst dich jetzt erneut anmelden."
+        });
+      }
+    }
+  }, [players, playerName, isRegistered, toast]);
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     const query = registerInput.trim();

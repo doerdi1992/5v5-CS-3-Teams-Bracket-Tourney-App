@@ -58,3 +58,4 @@ Thumbs.db
 
 # Credentials and server database configs
 artifacts/api-server/server_config.json
+artifacts/api-server/matchzy.db

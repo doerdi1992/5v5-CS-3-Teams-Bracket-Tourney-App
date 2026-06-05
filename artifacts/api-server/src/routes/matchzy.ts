@@ -24,7 +24,7 @@ const BUILTIN_MAP_REGISTRY: Record<string, string> = {
 };
 
 // Helper to resolve map keys using the map_registry.json (with built-in fallback)
-function resolveMapPath(mapKey: string): string {
+export function resolveMapPath(mapKey: string): string {
   const key = mapKey.toLowerCase().trim();
   try {
     const registryPath = path.resolve(process.cwd(), "artifacts/matchzy-generator/map_registry.json");
