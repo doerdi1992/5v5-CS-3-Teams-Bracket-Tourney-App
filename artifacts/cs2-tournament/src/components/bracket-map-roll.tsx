@@ -372,10 +372,10 @@ export default function BracketMapRoll() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="grid gap-6 md:grid-cols-2">
+    <div className="grid gap-6 md:grid-cols-2 items-stretch">
       {/* ── Left: Bracket ── */}
-      <div className="space-y-6">
-        <Card className="border-border/50">
+      <div className="flex flex-col h-full">
+        <Card className="border-border/50 flex-1 flex flex-col">
           <CardHeader className="flex flex-row justify-between items-center">
             <CardTitle className="font-mono text-primary flex items-center gap-2">
               <Trophy className="w-5 h-5" />
@@ -386,9 +386,9 @@ export default function BracketMapRoll() {
               RESET
             </Button>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-grow flex flex-col justify-between">
             {bracket ? (
-              <div className="space-y-4">
+              <div className="space-y-4 flex-grow flex flex-col justify-between">
                 {bracket.currentMatch === 5 && (
                   <div className="p-5 border border-yellow-500/30 rounded-xl bg-yellow-500/5 text-center flex flex-col items-center gap-2 animate-in fade-in slide-in-from-top-4 duration-300">
                     <Crown className="w-10 h-10 text-yellow-500 animate-bounce" />
@@ -542,7 +542,7 @@ export default function BracketMapRoll() {
                 })}
 
                 {bracket.currentMatch <= 4 && currentTeams.length > 0 && (
-                  <div className="pt-4 border-t border-border space-y-3">
+                  <div className="pt-4 border-t border-border space-y-3 mt-auto">
                     <p className="font-mono text-xs text-muted-foreground mb-1 uppercase">
                       {bracket.currentMatch === 4 && (bracket.match4BestOf ?? 1) === 3
                         ? `Tiebreaker Partie ${(bracket.match4Score?.left ?? 0) + (bracket.match4Score?.right ?? 0) + 1} von max. 3 — Sieger wählen`
@@ -645,8 +645,8 @@ export default function BracketMapRoll() {
       </div>
 
       {/* ── Right: Map Roll + Server ── */}
-      <div className="space-y-6">
-        <Card className="border-border/50 border-t-secondary border-t-2">
+      <div className="flex flex-col h-full gap-6">
+        <Card className="border-border/50 border-t-secondary border-t-2 flex-1 flex flex-col">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="font-mono text-secondary flex items-center gap-2">
@@ -660,7 +660,7 @@ export default function BracketMapRoll() {
             </div>
             <CardDescription className="font-mono text-xs">Pool (eine pro Zeile oder kommagetrennt)</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 flex-grow flex flex-col justify-between">
             <Textarea
               value={mapPool}
               onChange={(e) => setMapPool(e.target.value)}
@@ -763,25 +763,27 @@ export default function BracketMapRoll() {
               </div>
             )}
 
-            {(!bracket?.rolledMap || isSpinning) ? (
-              <Button
-                className="w-full font-mono text-base h-12 uppercase tracking-widest"
-                onClick={handleRollMap}
-                disabled={isSpinning || rollMapMut.isPending}
-              >
-                <Dices className="w-5 h-5 mr-2" />
-                {isSpinning ? "Dreht..." : "Karte drehen"}
-              </Button>
-            ) : (
-              <Button
-                className="w-full font-mono text-base h-12 uppercase tracking-widest bg-destructive hover:bg-destructive/90 text-white"
-                onClick={handleResetActiveMatch}
-                disabled={resetActiveMatchMut.isPending}
-              >
-                <RefreshCw className="w-5 h-5 mr-2" />
-                Partie / Karte zurücksetzen
-              </Button>
-            )}
+            <div className="mt-auto pt-4 w-full">
+              {(!bracket?.rolledMap || isSpinning) ? (
+                <Button
+                  className="w-full font-mono text-base h-12 uppercase tracking-widest"
+                  onClick={handleRollMap}
+                  disabled={isSpinning || rollMapMut.isPending}
+                >
+                  <Dices className="w-5 h-5 mr-2" />
+                  {isSpinning ? "Dreht..." : "Karte drehen"}
+                </Button>
+              ) : (
+                <Button
+                  className="w-full font-mono text-base h-12 uppercase tracking-widest bg-destructive hover:bg-destructive/90 text-white"
+                  onClick={handleResetActiveMatch}
+                  disabled={resetActiveMatchMut.isPending}
+                >
+                  <RefreshCw className="w-5 h-5 mr-2" />
+                  Partie / Karte zurücksetzen
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
 
