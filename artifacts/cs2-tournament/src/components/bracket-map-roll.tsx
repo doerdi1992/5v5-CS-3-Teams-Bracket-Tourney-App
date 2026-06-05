@@ -840,12 +840,6 @@ export default function BracketMapRoll() {
                     <Server className="w-5 h-5 text-emerald-500 animate-pulse" />
                     <span className="font-mono text-sm uppercase tracking-wider text-emerald-500 font-bold">Match bereit</span>
                   </div>
-                  <div className="p-3 bg-black/40 rounded border border-white/[0.06] flex items-center justify-between">
-                    <code className="text-cyan-400 font-mono text-sm break-all">{bracket.activeServerDetails}</code>
-                    <Button variant="ghost" size="icon" onClick={() => copyConnectionString(bracket.activeServerDetails)} className="ml-2 h-9 w-9 text-muted-foreground hover:text-white">
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  </div>
                   <a href={getSteamUrl(bracket.activeServerDetails)} className="block">
                     <Button className="w-full font-mono uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white gap-2.5 h-14 text-sm">
                       <Play className="w-4.5 h-4.5 fill-current" />
