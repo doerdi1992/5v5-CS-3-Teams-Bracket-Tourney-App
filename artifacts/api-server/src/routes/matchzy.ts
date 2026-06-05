@@ -320,6 +320,14 @@ export async function runMatchzyStartSequence(rolledMapName?: string): Promise<{
         console.log(`[MatchZy Pipeline] EndMatch: ${e.message} (nicht kritisch)`);
       }
 
+      // Kick all players to ensure a clean start
+      console.log(`[MatchZy Pipeline] RCON → kickall (kicke alle Spieler)`);
+      try {
+        await Rcon.send(finalHost, port, password, "kickall");
+      } catch (e: any) {
+        console.log(`[MatchZy Pipeline] KickAll: ${e.message} (nicht kritisch)`);
+      }
+
       // Brief pause for matchzy to reset state
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
@@ -369,6 +377,15 @@ export async function runMatchzyStartSequence(rolledMapName?: string): Promise<{
       } catch (e: any) {
         console.log(`[MatchZy Pipeline] EndMatch: ${e.message} (nicht kritisch)`);
       }
+
+      // Kick all players to ensure a clean start
+      console.log(`[MatchZy Pipeline] RCON → kickall (kicke alle Spieler)`);
+      try {
+        await Rcon.send(finalHost, port, password, "kickall");
+      } catch (e: any) {
+        console.log(`[MatchZy Pipeline] KickAll: ${e.message} (nicht kritisch)`);
+      }
+
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // Mapchange
