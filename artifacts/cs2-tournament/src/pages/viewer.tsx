@@ -226,10 +226,10 @@ export default function ViewerPage() {
         <div className="w-full max-w-sm space-y-6 relative z-10 text-center">
           {/* Logo / Title */}
           <div className="space-y-2">
-            <h1 className="text-2xl font-black tracking-[0.15em] font-mono uppercase text-white/90">
+            <h1 className="text-4xl font-black tracking-[0.15em] font-mono uppercase text-white/90">
               Janaxf <span className="text-primary">5v5</span>
             </h1>
-            <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground/50">
+            <p className="text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground/50">
               CS2 Community Turnier
             </p>
           </div>
@@ -240,23 +240,23 @@ export default function ViewerPage() {
               value={registerInput}
               onChange={(e) => setRegisterInput(e.target.value)}
               placeholder="Steam-Profil-Link oder SteamID64..."
-              className="font-mono text-sm bg-white/[0.04] border-white/[0.08] h-12 text-center placeholder:text-muted-foreground/30 focus-visible:ring-primary/40 focus-visible:border-primary/30"
+              className="font-mono text-base bg-white/[0.04] border-white/[0.08] h-14 text-center placeholder:text-muted-foreground/30 focus-visible:ring-primary/40 focus-visible:border-primary/30"
               autoFocus
             />
             <Button
               type="submit"
-              className="w-full font-mono uppercase tracking-[0.15em] h-11 bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-500 text-white shadow-[0_4px_20px_rgba(249,115,22,0.25)] text-sm"
+              className="w-full font-mono uppercase tracking-[0.15em] h-14 bg-gradient-to-r from-primary to-orange-600 hover:from-primary/90 hover:to-orange-500 text-white shadow-[0_4px_20px_rgba(249,115,22,0.25)] text-base"
               disabled={!registerInput.trim() || isRegistering}
             >
               {isRegistering ? (
-                <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Verbinde...</>
+                <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Verbinde...</>
               ) : (
                 "Anmelden"
               )}
             </Button>
           </form>
 
-          <p className="text-[9px] font-mono text-muted-foreground/30 leading-relaxed">
+          <p className="text-xs font-mono text-muted-foreground/30 leading-relaxed">
             z.B. https://steamcommunity.com/id/deinname oder 76561198000000000
           </p>
         </div>
@@ -274,14 +274,14 @@ export default function ViewerPage() {
         {/* Compact header */}
         <header className="flex items-center justify-between py-3">
           <div>
-            <h1 className="text-lg font-black tracking-[0.1em] font-mono uppercase text-white/80">
+            <h1 className="text-3xl font-black tracking-[0.1em] font-mono uppercase text-white/80">
               Janaxf <span className="text-primary">5v5</span>
             </h1>
           </div>
           <Button
             variant="ghost"
             size="sm"
-            className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/40 hover:text-red-400 h-7"
+            className="font-mono text-xs uppercase tracking-wider text-muted-foreground/40 hover:text-red-400 h-9 px-3"
             onClick={() => { setIsRegistered(false); localStorage.removeItem("cs2_player_name"); }}
           >
             Abmelden
@@ -293,18 +293,18 @@ export default function ViewerPage() {
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground/50">Spieler</p>
-                <h2 className="text-xl font-bold font-mono text-white/90">{playerName}</h2>
+                <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground/50">Spieler</p>
+                <h2 className="text-3xl font-bold font-mono text-white/90">{playerName}</h2>
                 <Badge
                   variant={me?.status === "accepted" ? "default" : "secondary"}
-                  className="uppercase text-[9px] mt-1"
+                  className="uppercase text-xs mt-1.5 py-0.5 px-2"
                 >
                   {me?.status === "accepted" ? "✓ Akzeptiert" : me?.status === "rejected" ? "Abgelehnt" : "Ausstehend..."}
                 </Badge>
               </div>
               <div className="text-right">
-                <p className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground/50">Team</p>
-                <div className={`text-4xl font-black font-mono ${
+                <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground/50">Team</p>
+                <div className={`text-6xl font-black font-mono ${
                   me?.team === "A" ? "text-orange-500" :
                   me?.team === "B" ? "text-cyan-400" :
                   me?.team === "C" ? "text-purple-400" :
@@ -322,18 +322,18 @@ export default function ViewerPage() {
           <Card className="bg-emerald-500/[0.04] border-emerald-500/20 animate-in fade-in slide-in-from-top-2 duration-300">
             <CardContent className="p-5 space-y-3">
               <div className="flex items-center gap-2">
-                <Server className="w-4 h-4 text-emerald-500 animate-pulse" />
-                <span className="font-mono text-xs uppercase tracking-wider text-emerald-500 font-bold">Match bereit</span>
+                <Server className="w-5 h-5 text-emerald-500 animate-pulse" />
+                <span className="font-mono text-sm uppercase tracking-wider text-emerald-500 font-bold">Match bereit</span>
               </div>
-              <div className="p-2.5 bg-black/40 rounded border border-white/[0.06] flex items-center justify-between">
-                <code className="text-cyan-400 font-mono text-xs break-all">{connectionString}</code>
-                <Button variant="ghost" size="icon" onClick={copyConnectionString} className="ml-2 h-7 w-7 text-muted-foreground hover:text-white">
-                  <Copy className="w-3.5 h-3.5" />
+              <div className="p-3 bg-black/40 rounded border border-white/[0.06] flex items-center justify-between">
+                <code className="text-cyan-400 font-mono text-sm break-all">{connectionString}</code>
+                <Button variant="ghost" size="icon" onClick={copyConnectionString} className="ml-2 h-9 w-9 text-muted-foreground hover:text-white">
+                  <Copy className="w-4 h-4" />
                 </Button>
               </div>
               <a href={getSteamUrl(connectionString)} className="block">
-                <Button className="w-full font-mono uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white gap-2 h-10 text-xs">
-                  <Play className="w-3.5 h-3.5 fill-current" />
+                <Button className="w-full font-mono uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white gap-2.5 h-14 text-sm">
+                  <Play className="w-4.5 h-4.5 fill-current" />
                   Server Beitreten
                 </Button>
               </a>
@@ -347,9 +347,9 @@ export default function ViewerPage() {
             <CardContent className="p-5">
               {bracket.currentMatch === 5 && (
                 <div className="mb-5 p-4 border border-yellow-500/20 rounded-lg bg-yellow-500/[0.03] text-center">
-                  <Crown className="w-8 h-8 text-yellow-500 mx-auto mb-1" />
-                  <p className="text-[9px] font-mono tracking-widest text-yellow-500/80 uppercase">Champion</p>
-                  <p className="text-2xl font-black font-mono text-yellow-400 uppercase">
+                  <Crown className="w-12 h-12 text-yellow-500 mx-auto mb-1.5" />
+                  <p className="text-xs font-mono tracking-widest text-yellow-500/80 uppercase">Champion</p>
+                  <p className="text-4xl font-black font-mono text-yellow-400 uppercase">
                     Team {bracket.match4Winner || bracket.match3Winner}
                   </p>
                 </div>
@@ -371,38 +371,38 @@ export default function ViewerPage() {
                 })().map(({ label, num, left, right, winner, rounds }) => (
                   <div
                     key={num}
-                    className={`p-3 rounded-lg border transition-all ${
+                    className={`p-4 rounded-lg border transition-all ${
                       bracket.currentMatch === num
                         ? "border-primary/30 bg-primary/[0.03] shadow-[0_0_12px_rgba(249,115,22,0.08)]"
                         : "border-white/[0.04] bg-white/[0.01]"
                     }`}
                   >
-                    <p className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground/50 mb-2">{label}</p>
-                    <div className="flex justify-between items-center text-sm font-bold font-mono">
+                    <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground/50 mb-2">{label}</p>
+                    <div className="flex justify-between items-center text-base font-bold font-mono">
                       <span className={`${winner === left ? "text-primary" : "text-white/70"}`}>
-                        {left} {rounds && <span className="text-[10px] text-muted-foreground/40 font-normal">({rounds.left})</span>}
+                        {left} {rounds && <span className="text-xs text-muted-foreground/40 font-normal">({rounds.left})</span>}
                       </span>
-                      <span className="text-muted-foreground/20 text-[10px]">vs</span>
+                      <span className="text-muted-foreground/20 text-xs">vs</span>
                       <span className={`${winner === right ? "text-primary" : "text-white/70"}`}>
-                        {rounds && <span className="text-[10px] text-muted-foreground/40 font-normal">({rounds.right})</span>} {right}
+                        {rounds && <span className="text-xs text-muted-foreground/40 font-normal">({rounds.right})</span>} {right}
                       </span>
                     </div>
-                    {winner && <p className="text-[9px] font-mono text-primary/70 text-center mt-1.5 uppercase">Sieger: {winner}</p>}
+                    {winner && <p className="text-xs font-mono text-primary/70 text-center mt-1.5 uppercase">Sieger: {winner}</p>}
                   </div>
                 ))}
               </div>
 
               {/* Current map */}
               {rolledMap && (
-                <div className="mt-4 pt-4 border-t border-white/[0.04] flex items-center gap-4">
+                <div className="mt-5 pt-5 border-t border-white/[0.04] flex items-center gap-5">
                   {mapImageUrl && (
-                    <div className="w-24 h-14 rounded overflow-hidden border border-white/[0.06] flex-shrink-0">
+                    <div className="w-36 h-20 rounded overflow-hidden border border-white/[0.06] flex-shrink-0">
                       <img src={mapImageUrl} alt={rolledMap} className="w-full h-full object-cover" />
                     </div>
                   )}
                   <div>
-                    <p className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground/40">Aktuelle Karte</p>
-                    <p className="font-mono font-black text-xl text-cyan-400 uppercase">{rolledMap}</p>
+                    <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground/40">Aktuelle Karte</p>
+                    <p className="font-mono font-black text-2xl text-cyan-400 uppercase">{rolledMap}</p>
                   </div>
                 </div>
               )}
@@ -415,22 +415,22 @@ export default function ViewerPage() {
       <Dialog open={showConnectionModal} onOpenChange={setShowConnectionModal}>
         <DialogContent className="sm:max-w-md bg-[#0f1525] border-primary/20">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 font-mono text-xl text-primary">
-              <Server className="w-5 h-5" />
+            <DialogTitle className="flex items-center gap-2 font-mono text-2xl text-primary">
+              <Server className="w-6 h-6" />
               Match bereit
             </DialogTitle>
-            <DialogDescription>Verbinde dich mit dem Server:</DialogDescription>
+            <DialogDescription className="text-sm">Verbinde dich mit dem Server:</DialogDescription>
           </DialogHeader>
           <div className="p-3 bg-black/40 rounded border border-white/[0.06] flex items-center justify-between">
-            <code className="text-cyan-400 font-mono text-sm break-all">{connectionString}</code>
-            <Button variant="ghost" size="icon" onClick={copyConnectionString} className="ml-2 h-8 w-8">
-              <Copy className="w-4 h-4" />
+            <code className="text-cyan-400 font-mono text-base break-all">{connectionString}</code>
+            <Button variant="ghost" size="icon" onClick={copyConnectionString} className="ml-2 h-10 w-10">
+              <Copy className="w-5 h-5" />
             </Button>
           </div>
           {connectionString && (
             <a href={getSteamUrl(connectionString)} className="block">
-              <Button className="w-full font-mono uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white gap-2 h-10">
-                <Play className="w-4 h-4 fill-current" />
+              <Button className="w-full font-mono uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white gap-2 h-14 text-base">
+                <Play className="w-5 h-5 fill-current" />
                 Server Beitreten
               </Button>
             </a>
