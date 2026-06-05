@@ -200,9 +200,27 @@ class Store {
   }
 
   addViewerPlayer(clientId: string, name: string, steamId?: string): Player {
+    // Clean up any existing rejected players with the same steamId or name
+    if (steamId) {
+      const duplicate = Array.from(this.playerPool.values()).find(
+        (p) => p.steamId === steamId && p.status === "rejected"
+      );
+      if (duplicate) {
+        this.playerPool.delete(duplicate.id);
+      }
+    } else {
+      const duplicate = Array.from(this.playerPool.values()).find(
+        (p) => p.name.toLowerCase() === name.toLowerCase() && p.status === "rejected"
+      );
+      if (duplicate) {
+        this.playerPool.delete(duplicate.id);
+      }
+    }
+
     const existing = Array.from(this.playerPool.values()).find((p) => p.id === clientId);
     if (existing) {
       existing.name = name;
+      existing.status = "pending"; // Reset to pending if they apply again
       if (steamId) existing.steamId = steamId;
       return existing;
     }

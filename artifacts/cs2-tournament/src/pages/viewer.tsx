@@ -38,6 +38,7 @@ export default function ViewerPage() {
   const [isRegistered, setIsRegistered] = useState(false);
   const [registerInput, setRegisterInput] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
+  const [lastRegisterTime, setLastRegisterTime] = useState<number>(0);
   const [connectionString, setConnectionString] = useState<string | null>(() =>
     localStorage.getItem("cs2_viewer_connection")
   );
@@ -68,7 +69,7 @@ export default function ViewerPage() {
 
   useEffect(() => {
     const handleBroadcast = (payload: { connectionString: string; teams: string[] }) => {
-      const me = players?.find((p) => p.name === playerName);
+      const me = players?.find((p) => p.id === clientId);
       if (me?.team && payload.teams.includes(me.team)) {
         setConnectionString(payload.connectionString);
         localStorage.setItem("cs2_viewer_connection", payload.connectionString);
@@ -77,11 +78,15 @@ export default function ViewerPage() {
     };
     socket.on("server_broadcast", handleBroadcast);
     return () => { socket.off("server_broadcast", handleBroadcast); };
-  }, [players, playerName]);
+  }, [players, clientId]);
 
   useEffect(() => {
-    if (isRegistered && players) {
-      const me = players.find((p) => p.name === playerName);
+    if (isRegistered && players && clientId) {
+      // Don't trigger rejection checks immediately after register to avoid race conditions
+      if (Date.now() - lastRegisterTime < 4000) {
+        return;
+      }
+      const me = players.find((p) => p.id === clientId);
       if (me?.status === "rejected" || !me) {
         localStorage.removeItem("cs2_player_name");
         localStorage.removeItem("cs2_steam_id");
@@ -106,7 +111,7 @@ export default function ViewerPage() {
         });
       }
     }
-  }, [players, playerName, isRegistered, toast]);
+  }, [players, clientId, isRegistered, lastRegisterTime, toast]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,6 +173,7 @@ export default function ViewerPage() {
         else localStorage.removeItem("cs2_steam_id");
         setPlayerName(finalName);
         setIsRegistered(true);
+        setLastRegisterTime(Date.now());
         socket.emit("register", { clientId });
         toast({ title: "Angemeldet!", description: "Warte auf die Turnier-Zuteilung." });
       })
@@ -182,7 +188,7 @@ export default function ViewerPage() {
     }
   };
 
-  const me = players?.find((p) => p.name === playerName);
+  const me = players?.find((p) => p.id === clientId);
   const rolledMap = bracket?.rolledMap ?? null;
   const mapImageUrl = rolledMap ? (mapImages[rolledMap] ?? null) : null;
 
