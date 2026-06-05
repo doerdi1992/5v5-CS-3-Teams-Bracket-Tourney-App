@@ -103,21 +103,22 @@ class Store {
       console.error("Failed to load server settings from file, using env defaults:", e);
     }
 
-    // Default settings from environment or fallbacks
+    // Default settings: pre-filled with verified janaxF default FSHost server settings
     return {
-      rconHost: process.env["DEFAULT_RCON_HOST"] || "",
-      rconPort: Number(process.env["DEFAULT_RCON_PORT"]) || 27015,
-      rconPassword: process.env["DEFAULT_RCON_PASSWORD"] || "",
-      loadMethod: "url",
-      ftpHost: "",
+      rconHost: process.env["DEFAULT_RCON_HOST"] || "185.194.236.142",
+      rconPort: Number(process.env["DEFAULT_RCON_PORT"]) || 30045,
+      rconPassword: process.env["DEFAULT_RCON_PASSWORD"] || "FetchingJealous1",
+      loadMethod: "ftp",
+      ftpHost: "de35.fsho.st",
       ftpPort: 21,
-      ftpUser: "",
-      ftpPassword: "",
-      ftpDir: "game/csgo/MatchZy/",
-      connectionString: process.env["DEFAULT_SERVER_CONNECTION"] || "",
+      ftpUser: "343263",
+      ftpPassword: "tZWNVrJ4CKUz",
+      ftpDir: "p3611/cfg/MatchZy/",
+      connectionString: process.env["DEFAULT_SERVER_CONNECTION"] || "connect 185.194.236.142:30045; password janaxfcommunity",
       autoSend: true,
       autoStartMatch: true,
-      appUrl: "",
+      appUrl: "https://esports-bracket-flow--buffinger1.replit.app",
+      adminPassword: "ztjhfts3425ghgd",
     };
   }
 
