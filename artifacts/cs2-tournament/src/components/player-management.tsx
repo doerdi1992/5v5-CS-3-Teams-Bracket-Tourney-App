@@ -148,9 +148,9 @@ export default function PlayerManagement() {
   const acceptedPlayers = players.filter((p) => p.status === "accepted");
 
   return (
-    <div className="grid gap-6 md:grid-cols-12">
+    <div className="grid gap-6 md:grid-cols-12 items-stretch">
       {/* Left Column */}
-      <div className="md:col-span-8 space-y-6">
+      <div className="md:col-span-8 flex flex-col gap-6">
         {/* Large drafted active teams card */}
         {teams && (teams.A.length > 0 || teams.B.length > 0 || teams.C.length > 0) && (
           <Card className="border-border/50 border-t-primary border-t-2 animate-in fade-in slide-in-from-top-4 duration-300">
@@ -216,7 +216,7 @@ export default function PlayerManagement() {
           </Card>
         )}
 
-        <Card className="border-border/50">
+        <Card className="border-border/50 flex-1 flex flex-col">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="font-mono text-secondary">
               AKZEPTIERTE SPIELER ({acceptedPlayers.length})
@@ -230,8 +230,8 @@ export default function PlayerManagement() {
               Teams auslosen (15 benötigt)
             </Button>
           </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[400px] pr-4">
+          <CardContent className="flex-1 flex flex-col min-h-0">
+            <ScrollArea className="flex-1 pr-4 min-h-[300px]">
               <div className="space-y-2 mt-4">
                 {acceptedPlayers.length === 0 ? (
                   <p className="text-sm text-muted-foreground font-mono">
@@ -299,15 +299,15 @@ export default function PlayerManagement() {
       </div>
 
       {/* Right Column */}
-      <div className="md:col-span-4 space-y-6">
-        <Card className="border-border/50 border-t-secondary border-t-2">
+      <div className="md:col-span-4 flex flex-col gap-6">
+        <Card className="border-border/50 border-t-secondary border-t-2 flex-1 flex flex-col">
           <CardHeader>
             <CardTitle className="font-mono text-sm text-muted-foreground">
               FREIGABE-WARTESCHLANGE
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[250px]">
+          <CardContent className="flex-1 flex flex-col min-h-0">
+            <ScrollArea className="flex-1 min-h-[250px]">
               <div className="space-y-3">
                 {pendingPlayers.length === 0 ? (
                   <p className="text-xs font-mono text-muted-foreground">Warteschlange leer.</p>
